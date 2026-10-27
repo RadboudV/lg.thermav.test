@@ -1,0 +1,22 @@
+{
+    "pair": {
+      "title": "Add Therma V R32 Heatpump",
+      "nosettings": "Please fill in all the required fields.",
+      "intro": "Enter the IP address, port and modbus id of your Therma V RTU Modbus Converter.",
+      "address": "IP Address",
+      "port": "Port",
+      "polling": "Polling Frequency",
+      "deviceid": "Modbus ID",
+      "deviceidbattery": "Has battery",      
+      "deviceid2": "Device ID2",
+      "deviceid2battery": "Has battery",               
+      "connect": "Connect"
+    },
+    "Unreachable": "Unreachable",
+    "Off": "Off",
+    "BatteryStandby": "Battery Standby",
+    "Charge": "Battery Charging",
+    "Discharge": "Battery Discharging",
+    "NA": "Information Not Available"
+  }
+  

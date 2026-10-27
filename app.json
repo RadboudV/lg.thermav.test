@@ -1,0 +1,510 @@
+{
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
+  "id": "lg.thermav.test",
+  "version": "1.0.1",
+  "compatibility": ">=12.2.0",
+  "sdk": 3,
+  "brandColor": "#FF0000",
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "LG Therma V Test"
+  },
+  "description": {
+    "en": "Add support for LG Therma V (via a Modbus TCP gateway)"
+  },
+  "category": [
+    "climate"
+  ],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png"
+  },
+  "author": {
+    "name": "R. V.",
+    "email": "r.verberne@radboudverberne.nl"
+  },
+  "flow": {
+    "actions": [
+      {
+        "title": {
+          "en": "Write value to register"
+        },
+        "titleFormatted": {
+          "en": "Write [[value]] to [[registerType]] register [[register]]",
+          "nl": "Schrijf [[value]] naar [[registerType]] register [[register]]"
+        },
+        "args": [
+          {
+            "type": "number",
+            "name": "value",
+            "title": {
+              "en": "Value"
+            },
+            "placeholder": {
+              "en": "Value to write"
+            }
+          },
+          {
+            "type": "dropdown",
+            "name": "registerType",
+            "title": {
+              "en": "The register type where to write to"
+            },
+            "values": [
+              {
+                "id": "input",
+                "title": {
+                  "en": "input"
+                }
+              },
+              {
+                "id": "holding",
+                "title": {
+                  "en": "holding"
+                }
+              }
+            ]
+          },
+          {
+            "type": "autocomplete",
+            "name": "register",
+            "title": {
+              "en": "Register"
+            },
+            "placeholder": {
+              "en": "Register address"
+            }
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ],
+        "id": "write_value_to_register"
+      },
+      {
+        "id": "thermav_setsilentmodeon",
+        "title": {
+          "en": "Turn Silent Mode On",
+          "nl": "Zet stille modus aan"
+        },
+        "titleFormatted": {
+          "en": "Turn Silent Mode On for [[device]]",
+          "nl": "Zet stille modus aan voor [[device]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_setsilentmodeoff",
+        "title": {
+          "en": "Turn Silent Mode Off",
+          "nl": "Zet stille modus uit"
+        },
+        "titleFormatted": {
+          "en": "Turn Silent Mode Off for [[device]]",
+          "nl": "Zet stille modus uit voor [[device]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_turnheatpumpoff",
+        "title": {
+          "en": "Turn Heatpump Off",
+          "nl": "Zet warmtepomp uit"
+        },
+        "titleFormatted": {
+          "en": "Turn [[device]] Off",
+          "nl": "Zet [[device]] uit"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_turnheatpumponauto",
+        "title": {
+          "en": "Turn Heatpump On (Auto)",
+          "nl": "Zet warmtepomp aan (Auto)"
+        },
+        "titleFormatted": {
+          "en": "Turn [[device]] On in Auto mode",
+          "nl": "Zet [[device]] aan in Auto modus"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_turnheatpumponheat",
+        "title": {
+          "en": "Turn Heatpump On (heat)",
+          "nl": "Zet warmtepomp aan (verwarmen)"
+        },
+        "titleFormatted": {
+          "en": "Turn [[device]] On in heating mode",
+          "nl": "Zet [[device]] aan in verwarmingsmodus"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_turnheatpumponcool",
+        "title": {
+          "en": "Turn Heatpump On (cool)",
+          "nl": "Zet warmtepomp aan (koelen)"
+        },
+        "titleFormatted": {
+          "en": "Turn [[device]] On in cooling mode",
+          "nl": "Zet [[device]] aan in koelmodus"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_setsilentmodeonoff",
+        "title": {
+          "en": "Turn Silent Mode on or off",
+          "nl": "Zet stille modus aan of uit"
+        },
+        "titleFormatted": {
+          "en": "Turn Silent Mode [[enabled]] for [[device]]",
+          "nl": "Zet stille modus [[enabled]] voor [[device]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "dropdown",
+            "name": "enabled",
+            "title": {
+              "en": "on or off",
+              "nl": "aan of uit"
+            },
+            "values": [
+              {
+                "id": "true",
+                "title": {
+                  "en": "on",
+                  "nl": "aan"
+                }
+              },
+              {
+                "id": "false",
+                "title": {
+                  "en": "off",
+                  "nl": "uit"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "LG Therma V Heatpump (Modbus)",
+        "nl": "LG Therma V warmtepomp (Modbus)"
+      },
+      "class": "heatpump",
+      "capabilities": [
+        "measure_temperature.tempwateroutlet",
+        "measure_temperature.tempwaterinlet",
+        "measure_water.waterflowrate",
+        "measure_frequency.freqinverter",
+        "measure_power.generatedheat",
+        "thermostat_mode.thermostat",
+        "target_temperature.thermostat",
+        "measure_temperature.thermostat",
+        "measure_temperature.temppipein",
+        "measure_temperature.tempsuction",
+        "alarm_cold",
+        "alarm_generic"
+      ],
+      "capabilitiesOptions": {
+        "measure_temperature.tempwateroutlet": {
+          "title": {
+            "en": "Water Outlet Temperature",
+            "nl": "Aanvoer temperatuur"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.tempwaterinlet": {
+          "title": {
+            "en": "Water Inlet Temperature",
+            "nl": "Retour temperatuur"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.temproomcircuit1": {
+          "title": {
+            "en": "Room Circuit 1 Temperature",
+            "nl": "Kamer 1 temperatuur"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.tempoutdoor": {
+          "title": {
+            "en": "Outdoor Temperature",
+            "nl": "Buiten temperatuur"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.temppipein": {
+          "title": {
+            "en": "Intake Pipe Temperature",
+            "nl": "Inlaat pijp temperatuur"
+          },
+          "decimals": 1
+        },
+        "measure_temperature.tempsuction": {
+          "title": {
+            "en": "Suction Temperature",
+            "nl": "Aanzuig temperatuur"
+          },
+          "decimals": 1
+        },
+        "target_temperature": {
+          "decimals": 0,
+          "step": 1
+        },
+        "target_temperature.thermostat": {
+          "step": 1
+        },
+        "measure_frequency.freqinverter": {
+          "decimals": 0,
+          "title": {
+            "en": "Compressor Speed",
+            "nl": "Compressor snelheid"
+          }
+        },
+        "measure_water.waterflowrate": {
+          "decimals": 1,
+          "title": {
+            "en": "Water Flow Rate",
+            "nl": "Doorstroomsnelheid"
+          }
+        },
+        "measure_power.generatedheat": {
+          "decimals": 0,
+          "approximated": true,
+          "title": {
+            "en": "Calculated Heat output",
+            "nl": "Berekende Warmteopbrengst"
+          }
+        },
+        "measure_power.generatedcold": {
+          "decimals": 0,
+          "approximated": true,
+          "title": {
+            "en": "Calculated Cold output",
+            "nl": "Berekende Koudeopbrengst"
+          }
+        },
+        "alarm_cold": {
+          "title": {
+            "en": "Defrosting",
+            "nl": "Ontdooien"
+          }
+        }
+      },
+      "energy": {
+        "usageConstant": 0
+      },
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/thermav/assets/images/small.png",
+        "large": "/drivers/thermav/assets/images/large.png"
+      },
+      "pair": [
+        {
+          "id": "start"
+        }
+      ],
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "LG Therma V settings"
+          },
+          "children": [
+            {
+              "id": "settings_enable_silent_mode",
+              "type": "checkbox",
+              "label": {
+                "en": "Silent Mode",
+                "nl": "Silent Mode"
+              },
+              "value": false
+            },
+            {
+              "id": "settings_coolingmode",
+              "type": "checkbox",
+              "label": {
+                "en": "Cooling Mode Enabled",
+                "nl": "Cooling Mode Enabled"
+              },
+              "hint": {
+                "en": "Cooling mode enabled (DIP switch), see manual.",
+                "nl": "Cooling mode enabled (DIP switch), see manual."
+              },
+              "value": false
+            },
+            {
+              "id": "settings_trigger_desinfection",
+              "type": "checkbox",
+              "label": {
+                "en": "Trigger Desinfection",
+                "nl": "Trigger Desinfection"
+              },
+              "hint": {
+                "en": "Only a trigger, will switch back to off on next update.",
+                "nl": "Alleen een trigger, springt uit bij volgende update."
+              },
+              "value": false
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "LG Therma V Modbus settings"
+          },
+          "children": [
+            {
+              "id": "address",
+              "type": "text",
+              "value": "0.0.0.0",
+              "label": {
+                "en": "IP Address"
+              }
+            },
+            {
+              "id": "port",
+              "type": "number",
+              "value": 502,
+              "step": 1,
+              "label": {
+                "en": "Port"
+              }
+            },
+            {
+              "id": "id",
+              "type": "number",
+              "value": 1,
+              "step": 1,
+              "attr": {
+                "min": 0,
+                "max": 50
+              },
+              "label": {
+                "en": "Modbus ID"
+              }
+            },
+            {
+              "id": "pollinginterval",
+              "type": "number",
+              "value": 30,
+              "min": 5,
+              "max": 600,
+              "units": {
+                "en": "seconds"
+              },
+              "label": {
+                "en": "Polling interval"
+              }
+            },
+            {
+              "id": "modbusstatus",
+              "type": "label",
+              "label": {
+                "en": "Modbus Status",
+                "nl": "Modbus Status"
+              },
+              "value": "unknown"
+            }
+          ]
+        }
+      ],
+      "id": "thermav"
+    }
+  ]
+}

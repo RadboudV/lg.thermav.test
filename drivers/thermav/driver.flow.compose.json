@@ -1,0 +1,154 @@
+{
+  "actions": [
+    {
+      "id": "thermav_setsilentmodeon",
+      "title": {
+        "en": "Turn Silent Mode On",
+        "nl": "Zet stille modus aan"
+      },
+      "titleFormatted": {
+        "en": "Turn Silent Mode On for [[device]]",
+        "nl": "Zet stille modus aan voor [[device]]"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        }
+      ]
+    },
+    {
+      "id": "thermav_setsilentmodeoff",
+      "title": {
+        "en": "Turn Silent Mode Off",
+        "nl": "Zet stille modus uit"
+      },
+      "titleFormatted": {
+        "en": "Turn Silent Mode Off for [[device]]",
+        "nl": "Zet stille modus uit voor [[device]]"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        }
+      ]
+    },
+    {
+      "id": "thermav_turnheatpumpoff",
+      "title": {
+        "en": "Turn Heatpump Off",
+        "nl": "Zet warmtepomp uit"
+      },
+      "titleFormatted": {
+        "en": "Turn [[device]] Off",
+        "nl": "Zet [[device]] uit"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        }
+      ]
+    },
+    {
+      "id": "thermav_turnheatpumponauto",
+      "title": {
+        "en": "Turn Heatpump On (Auto)",
+        "nl": "Zet warmtepomp aan (Auto)"
+      },
+      "titleFormatted": {
+        "en": "Turn [[device]] On in Auto mode",
+        "nl": "Zet [[device]] aan in Auto modus"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        }
+      ]
+    },
+    {
+      "id": "thermav_turnheatpumponheat",
+      "title": {
+        "en": "Turn Heatpump On (heat)",
+        "nl": "Zet warmtepomp aan (verwarmen)"
+      },
+      "titleFormatted": {
+        "en": "Turn [[device]] On in heating mode",
+        "nl": "Zet [[device]] aan in verwarmingsmodus"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        }
+      ]
+    },
+    {
+      "id": "thermav_turnheatpumponcool",
+      "title": {
+        "en": "Turn Heatpump On (cool)",
+        "nl": "Zet warmtepomp aan (koelen)"
+      },
+      "titleFormatted": {
+        "en": "Turn [[device]] On in cooling mode",
+        "nl": "Zet [[device]] aan in koelmodus"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        }
+      ]
+    },
+    {
+      "id": "thermav_setsilentmodeonoff",
+      "title": {
+        "en": "Turn Silent Mode on or off",
+        "nl": "Zet stille modus aan of uit"
+      },
+      "titleFormatted": {
+        "en": "Turn Silent Mode [[enabled]] for [[device]]",
+        "nl": "Zet stille modus [[enabled]] voor [[device]]"
+      },
+      "args": [
+        {
+          "type": "device",
+          "name": "device",
+          "filter": "driver_id=thermav"
+        },
+        {
+          "type": "dropdown",
+          "name": "enabled",
+          "title": {
+            "en": "on or off",
+            "nl": "aan of uit"
+          },
+          "values": [
+            {
+              "id": "true",
+              "title": {
+                "en": "on",
+                "nl": "aan"
+              }
+            },
+            {
+              "id": "false",
+              "title": {
+                "en": "off",
+                "nl": "uit"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

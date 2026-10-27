@@ -1,0 +1,96 @@
+<script type="text/javascript">
+
+Homey.setTitle( __('pair.title') );
+
+$(function() {
+  function showError(message) {
+    $('.thermav-error-msg').text(message);
+    $('.thermav-error').show();
+  }
+
+  $('#connect').click(function() {
+    $('.thermav-error').hide();
+
+    var address = String($('#address').val()).trim();
+    var port = Number($('#port').val());
+    var modbusId = Number($('#modbusid').val());
+
+    if (address === '' || !Number.isInteger(port) || port < 1 || port > 65535
+        || !Number.isInteger(modbusId) || modbusId < 0 || modbusId > 255) {
+      showError(__('pair.nosettings'));
+      return;
+    }
+
+    var deviceId = Math.random().toString(36).substr(2,5).toLowerCase();
+
+    $('#connect').prop('disabled', true);
+    Homey.addDevice({
+      name     : 'thermav_' + deviceId,
+      data     : { id: deviceId },
+      settings : { address: address, port: port, id: modbusId }
+    }, function(error, result) {
+      if (error) {
+        $('#connect').prop('disabled', false);
+        showError(error.message || error.toString());
+        return;                      // stay on this page so the user can correct the input
+      }
+      Homey.done();
+    });
+  });
+})
+</script>
+
+<style type="text/css">
+  .form-group {
+    width: 100%;
+    display: block;
+    margin-bottom: 12px;
+  }
+  .form-group label {
+    display: block;
+  }
+  .thermav-status, .thermav-info {
+		display: none;
+	}
+  .thermav-info {
+    margin-top: 10px;
+    font-size: 12px;
+  }
+  .thermav-info .info-label {
+    min-width: 150px;
+    font-weight: 700;
+  }
+  .buttons, .messages {
+    padding-top: 14px;
+  }
+  .button:disabled {
+    color: #ccc;
+  }
+  .button:enabled {
+    background-color: #00c139 !important;
+    color: #fff;
+  }
+</style>
+
+<p data-i18n="pair.intro">Enter the IP address and port of your Therma V RTU Modbus Converter.</p>
+<div class="thermav-pairing">
+  <div class="form-group">
+    <label for="address" data-i18n="pair.address">IP address</label>
+    <input type="text" class="form-control" id="address" placeholder="0.0.0.0" required>
+  </div>
+  <div class="form-group">
+  	<label for="port" data-i18n="pair.port">Port</label>
+  	<input type="number" class="form-control" id="port" placeholder="502" value="502" required>
+  </div>
+  <div class="form-group">
+  	<label for="modbusid" data-i18n="pair.deviceid">Modbus ID</label>
+  	<input type="number" class="form-control" id="modbusid" placeholder="1" value="1" required>
+  </div>
+  <div class="form-group buttons">
+    <button id="connect" class="button" data-i18n="pair.connect">Connect</button>
+  </div>
+</div>
+
+<div class="messages">
+  <p class="thermav-status thermav-error" style="color: #ff6300;"><i class="fa fa-times"></i> <span class="thermav-error-msg"></span></p>
+</div>

@@ -1,0 +1,28 @@
+{
+  "id": "lg.thermav.test",
+  "version": "1.0.1",
+  "compatibility": ">=12.2.0",
+  "sdk": 3,
+  "brandColor": "#FF0000",
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "LG Therma V Test"
+  },
+  "description": {
+    "en": "Add support for LG Therma V (via a Modbus TCP gateway)"
+  },
+  "category": [
+    "climate"
+  ],
+  "permissions": [],
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png"
+  },
+  "author": {
+    "name": "R. V.",
+    "email": "r.verberne@radboudverberne.nl"
+  }
+}
