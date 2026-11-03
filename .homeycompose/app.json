@@ -16,7 +16,8 @@
   "category": [
     "climate"
   ],
-  "permissions": [],
+  "permissions": [
+  ],
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png"
@@ -24,5 +25,5 @@
   "author": {
     "name": "R. V.",
     "email": "r.verberne@radboudverberne.nl"
-  }
+  } 
 }

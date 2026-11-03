@@ -11,6 +11,9 @@
 	"measure_water.waterflowrate",
 	"measure_frequency.freqinverter",
 	"measure_power.generatedheat",
+	"measure_power.generatedcold",
+	"meter_power.totalgeneratedheat",
+	"meter_power.totalgeneratedcold",
 	"thermostat_mode.thermostat",
 	"target_temperature.thermostat",
 	"measure_temperature.thermostat",
@@ -31,13 +34,6 @@
       "title": {
         "en": "Water Inlet Temperature",
 		"nl": "Retour temperatuur"
-      },
-      "decimals": 1
-	  },
-	  "measure_temperature.temproomcircuit1": {
-      "title": {
-        "en": "Room Circuit 1 Temperature",
-		"nl": "Kamer 1 temperatuur"
       },
       "decimals": 1
 	  },
@@ -99,6 +95,24 @@
 		"nl": "Berekende Koudeopbrengst"
       }
     },
+	  "meter_power.totalgeneratedheat": {
+      "decimals": 0,
+	  "approximated": true,
+      "title": {
+        "en": "Total Heat Produced",
+		"nl": "Totale warmteopbrengst"
+      },
+	  "uiComponent": null
+    },
+	  "meter_power.totalgeneratedcold": {
+      "decimals": 0,
+	  "approximated": true,
+      "title": {
+        "en": "Total Cold Produced",
+		"nl": "Totale koudeopbrengst"
+      },
+	  "uiComponent": null
+    },	
 	  "alarm_cold": {
       "title": {
         "en": "Defrosting",
@@ -123,108 +137,5 @@
     {
       "id": "start"
     }
-  ],
-  "settings": [
-	{
-	    "type": "group",
-        "label": {
-          "en": "LG Therma V settings"
-        },
-		"children": [
-		{
-		"id": "settings_enable_silent_mode",
-		"type": "checkbox",
-		"label": {
-		"en": "Silent Mode",
-		"nl": "Silent Mode"
-		},
-		"value": false
-  },
-  {
-		"id": "settings_coolingmode",
-		"type": "checkbox",
-		"label": {
-		"en": "Cooling Mode Enabled",
-		"nl": "Cooling Mode Enabled"
-		},
-		"hint": {
-		"en": "Cooling mode enabled (DIP switch), see manual.",
-		"nl": "Cooling mode enabled (DIP switch), see manual."
-		},
-		"value": false
-  },
-  {
-		"id": "settings_trigger_desinfection",
-		"type": "checkbox",
-		"label": {
-		"en": "Trigger Desinfection",
-		"nl": "Trigger Desinfection"
-		},
-		"hint": {
-		"en": "Only a trigger, will switch back to off on next update.",
-		"nl": "Alleen een trigger, springt uit bij volgende update."
-		},
-		"value": false
-  }
-      ]
-    },
-	{
-      "type": "group",
-      "label": {
-        "en": "LG Therma V Modbus settings"
-      },
-      "children": [
-        {
-          "id": "address",
-          "type": "text",
-          "value": "0.0.0.0",
-          "label": {
-            "en": "IP Address"
-          }
-        },
-        {
-          "id": "port",
-          "type": "number",
-          "value": 502,
-          "step": 1,
-          "label": {
-            "en": "Port"
-          }
-        },
-        {
-          "id": "id",
-          "type": "number",
-          "value": 1,
-          "step": 1,
-          "attr": {
-            "min": 0,
-            "max": 50
-          },
-          "label": {
-            "en": "Modbus ID"
-          }
-        },
-		{
-          "id": "pollinginterval",
-          "type": "number",
-          "value": 30,
-          "min": 5,
-		  "max": 600,
-          "units": { "en": "seconds" },
-          "label": {
-            "en": "Polling interval"
-          }
-        },
-		{
-			"id": "modbusstatus",
-			"type": "label",
-			"label": {
-				"en": "Modbus Status",
-				"nl": "Modbus Status"
-			},
-		"value": "unknown"
-		}
-      ]
-	}
   ]
 }

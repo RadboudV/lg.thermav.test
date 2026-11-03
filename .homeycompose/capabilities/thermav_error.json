@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "title": {
+    "en": "Current error",
+    "nl": "Huidige storing"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

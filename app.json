@@ -270,6 +270,886 @@
             ]
           }
         ]
+      },
+      {
+        "id": "thermav_settemperature",
+        "title": {
+          "en": "Set temperature",
+          "nl": "Stel temperatuur in"
+        },
+        "titleFormatted": {
+          "en": "Set temperature of [[device]] to [[temperature]] °C",
+          "nl": "Stel temperatuur van [[device]] in op [[temperature]] °C"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "number",
+            "name": "temperature",
+            "title": {
+              "en": "Temperature",
+              "nl": "Temperatuur"
+            },
+            "placeholder": {
+              "en": "21",
+              "nl": "21"
+            },
+            "min": 5,
+            "max": 65,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "id": "thermav_setdhwtemperature",
+        "title": {
+          "en": "Set DHW temperature",
+          "nl": "Stel DHW-temperatuur in"
+        },
+        "titleFormatted": {
+          "en": "Set DHW temperature of [[device]] to [[temperature]] °C",
+          "nl": "Stel DHW-temperatuur van [[device]] in op [[temperature]] °C"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav&capabilities=target_temperature.dhw"
+          },
+          {
+            "type": "number",
+            "name": "temperature",
+            "title": {
+              "en": "Temperature",
+              "nl": "Temperatuur"
+            },
+            "placeholder": {
+              "en": "50",
+              "nl": "50"
+            },
+            "min": 35,
+            "max": 65,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "id": "thermav_settemperaturecircuit2",
+        "title": {
+          "en": "Set temperature of circuit 2",
+          "nl": "Stel temperatuur van circuit 2 in"
+        },
+        "titleFormatted": {
+          "en": "Set temperature of circuit 2 of [[device]] to [[temperature]] °C",
+          "nl": "Stel temperatuur van circuit 2 van [[device]] in op [[temperature]] °C"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav&capabilities=target_temperature.thermostat2"
+          },
+          {
+            "type": "number",
+            "name": "temperature",
+            "title": {
+              "en": "Temperature",
+              "nl": "Temperatuur"
+            },
+            "placeholder": {
+              "en": "35",
+              "nl": "35"
+            },
+            "min": 5,
+            "max": 65,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "id": "thermav_setenergystate",
+        "title": {
+          "en": "Set energy state input",
+          "nl": "Stel energiestatus-ingang in"
+        },
+        "titleFormatted": {
+          "en": "Set energy state input of [[device]] to [[state]]",
+          "nl": "Stel energiestatus-ingang van [[device]] in op [[state]]"
+        },
+        "hint": {
+          "en": "Only works when the heat pump installer setting Energy state > ESS use type is set to \"Use Modbus\" (default: \"Not use\").",
+          "nl": "Werkt alleen als de installateurinstelling Energy state > ESS use type op \"Use Modbus\" staat (standaard: \"Not use\")."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "Energy state",
+              "nl": "Energiestatus"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Not used",
+                  "nl": "Niet gebruikt"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Forced off",
+                  "nl": "Geforceerd uit"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Normal operation",
+                  "nl": "Normaal gebruik"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "On (recommended)",
+                  "nl": "Aan-aanbevolen"
+                }
+              },
+              {
+                "id": "4",
+                "title": {
+                  "en": "On (command)",
+                  "nl": "Aan-commando"
+                }
+              },
+              {
+                "id": "5",
+                "title": {
+                  "en": "On (command, step 2)",
+                  "nl": "Aan-commando stap 2"
+                }
+              },
+              {
+                "id": "6",
+                "title": {
+                  "en": "On (recommended, step 1)",
+                  "nl": "Aan-aanbevolen stap 1"
+                }
+              },
+              {
+                "id": "7",
+                "title": {
+                  "en": "Energy saving mode",
+                  "nl": "Energiebesparende modus"
+                }
+              },
+              {
+                "id": "8",
+                "title": {
+                  "en": "Super energy saving mode",
+                  "nl": "Super energiebesparende modus"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "triggers": [
+      {
+        "id": "thermav_silentmode_turned_on",
+        "title": {
+          "en": "Silent Mode turned on",
+          "nl": "Stille modus ingeschakeld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_silentmode_turned_off",
+        "title": {
+          "en": "Silent Mode turned off",
+          "nl": "Stille modus uitgeschakeld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_fault_detected",
+        "title": {
+          "en": "Fault detected",
+          "nl": "Storing gedetecteerd"
+        },
+        "tokens": [
+          {
+            "name": "code",
+            "type": "string",
+            "title": {
+              "en": "Code",
+              "nl": "Code"
+            }
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "title": {
+              "en": "Description",
+              "nl": "Omschrijving"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_fault_cleared",
+        "title": {
+          "en": "Fault cleared",
+          "nl": "Storing opgelost"
+        },
+        "tokens": [
+          {
+            "name": "code",
+            "type": "string",
+            "title": {
+              "en": "Code",
+              "nl": "Code"
+            }
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "title": {
+              "en": "Description",
+              "nl": "Omschrijving"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_solarpump_started",
+        "title": {
+          "en": "Solar pump started",
+          "nl": "Zonnepomp gestart"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_solarpump_stopped",
+        "title": {
+          "en": "Solar pump stopped",
+          "nl": "Zonnepomp gestopt"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      }
+    ],
+    "conditions": [
+      {
+        "id": "thermav_silentmodeenabled",
+        "title": {
+          "en": "Silent Mode is enabled",
+          "nl": "Stille modus is ingeschakeld"
+        },
+        "titleFormatted": {
+          "en": "Silent Mode of [[device]] is !{{enabled|disabled}}",
+          "nl": "Stille modus van [[device]] is !{{ingeschakeld|uitgeschakeld}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_compressor_running",
+        "title": {
+          "en": "Compressor is running",
+          "nl": "Compressor draait"
+        },
+        "titleFormatted": {
+          "en": "Compressor of [[device]] is !{{running|not running}}",
+          "nl": "Compressor van [[device]] !{{draait|draait niet}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_operationcycle_is",
+        "title": {
+          "en": "Heat pump is heating / cooling / standby",
+          "nl": "Warmtepomp verwarmt / koelt / stand-by"
+        },
+        "titleFormatted": {
+          "en": "[[device]] is [[cycle]]",
+          "nl": "[[device]] is [[cycle]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "dropdown",
+            "name": "cycle",
+            "title": {
+              "en": "Operation",
+              "nl": "Bedrijfstoestand"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "in standby",
+                  "nl": "in stand-by"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "cooling",
+                  "nl": "aan het koelen"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "heating",
+                  "nl": "aan het verwarmen"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "thermav_heatingcooling_enabled",
+        "title": {
+          "en": "Heating/cooling is enabled",
+          "nl": "Verwarmen/koelen is ingeschakeld"
+        },
+        "titleFormatted": {
+          "en": "Heating/cooling of [[device]] is !{{enabled|disabled}}",
+          "nl": "Verwarmen/koelen van [[device]] is !{{ingeschakeld|uitgeschakeld}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_dhw_enabled",
+        "title": {
+          "en": "DHW is enabled",
+          "nl": "DHW is ingeschakeld"
+        },
+        "titleFormatted": {
+          "en": "DHW of [[device]] is !{{enabled|disabled}}",
+          "nl": "DHW van [[device]] is !{{ingeschakeld|uitgeschakeld}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_circuit2_inuse",
+        "title": {
+          "en": "Circuit 2 is in use",
+          "nl": "Circuit 2 is in gebruik"
+        },
+        "titleFormatted": {
+          "en": "Circuit 2 of [[device]] is !{{in use|not in use}}",
+          "nl": "Circuit 2 van [[device]] is !{{in gebruik|niet in gebruik}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_backupheater_active",
+        "title": {
+          "en": "Backup heater step is active",
+          "nl": "Back-up verwarming stap is actief"
+        },
+        "titleFormatted": {
+          "en": "Backup heater [[step]] of [[device]] is !{{active|not active}}",
+          "nl": "Back-up verwarming [[step]] van [[device]] is !{{actief|niet actief}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "dropdown",
+            "name": "step",
+            "title": {
+              "en": "Step",
+              "nl": "Stap"
+            },
+            "values": [
+              {
+                "id": "1",
+                "title": {
+                  "en": "step 1",
+                  "nl": "stap 1"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "step 2",
+                  "nl": "stap 2"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "thermav_waterpump_running",
+        "title": {
+          "en": "Water pump is running",
+          "nl": "Waterpomp draait"
+        },
+        "titleFormatted": {
+          "en": "Water pump of [[device]] is !{{running|not running}}",
+          "nl": "Waterpomp van [[device]] !{{draait|draait niet}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_extwaterpump_running",
+        "title": {
+          "en": "External water pump is running",
+          "nl": "Externe waterpomp draait"
+        },
+        "titleFormatted": {
+          "en": "External water pump of [[device]] is !{{running|not running}}",
+          "nl": "Externe waterpomp van [[device]] !{{draait|draait niet}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_mixpump_running",
+        "title": {
+          "en": "Mixing pump is running",
+          "nl": "Mengpomp draait"
+        },
+        "titleFormatted": {
+          "en": "Mixing pump of [[device]] is !{{running|not running}}",
+          "nl": "Mengpomp van [[device]] !{{draait|draait niet}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_solarpump_running",
+        "title": {
+          "en": "Solar pump is running",
+          "nl": "Zonnepomp draait"
+        },
+        "titleFormatted": {
+          "en": "Solar pump of [[device]] is !{{running|not running}}",
+          "nl": "Zonnepomp van [[device]] !{{draait|draait niet}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_cooling_active",
+        "title": {
+          "en": "Cooling is active",
+          "nl": "Koelen is actief"
+        },
+        "titleFormatted": {
+          "en": "Cooling of [[device]] is !{{active|not active}}",
+          "nl": "Koelen van [[device]] is !{{actief|niet actief}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_emergency_available",
+        "title": {
+          "en": "Emergency operation is available",
+          "nl": "Noodbedrijf is beschikbaar"
+        },
+        "titleFormatted": {
+          "en": "Emergency operation of [[device]] is !{{available|not available}}",
+          "nl": "Noodbedrijf van [[device]] is !{{beschikbaar|niet beschikbaar}}"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_errorcode_is",
+        "title": {
+          "en": "Error code is",
+          "nl": "Storingscode is"
+        },
+        "titleFormatted": {
+          "en": "Error code of [[device]] is [[code]]",
+          "nl": "Storingscode van [[device]] is [[code]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "number",
+            "name": "code",
+            "title": {
+              "en": "Error code",
+              "nl": "Storingscode"
+            },
+            "placeholder": {
+              "en": "0",
+              "nl": "0"
+            },
+            "min": 0,
+            "max": 999,
+            "step": 1
+          }
+        ]
+      },
+      {
+        "id": "thermav_energystate_is",
+        "title": {
+          "en": "Energy state input is",
+          "nl": "Energiestatus-ingang is"
+        },
+        "titleFormatted": {
+          "en": "Energy state input of [[device]] is [[state]]",
+          "nl": "Energiestatus-ingang van [[device]] is [[state]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "dropdown",
+            "name": "state",
+            "title": {
+              "en": "Energy state",
+              "nl": "Energiestatus"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Not used",
+                  "nl": "Niet gebruikt"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Forced off",
+                  "nl": "Geforceerd uit"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Normal operation",
+                  "nl": "Normaal gebruik"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "On (recommended)",
+                  "nl": "Aan-aanbevolen"
+                }
+              },
+              {
+                "id": "4",
+                "title": {
+                  "en": "On (command)",
+                  "nl": "Aan-commando"
+                }
+              },
+              {
+                "id": "5",
+                "title": {
+                  "en": "On (command, step 2)",
+                  "nl": "Aan-commando stap 2"
+                }
+              },
+              {
+                "id": "6",
+                "title": {
+                  "en": "On (recommended, step 1)",
+                  "nl": "Aan-aanbevolen stap 1"
+                }
+              },
+              {
+                "id": "7",
+                "title": {
+                  "en": "Energy saving mode",
+                  "nl": "Energiebesparende modus"
+                }
+              },
+              {
+                "id": "8",
+                "title": {
+                  "en": "Super energy saving mode",
+                  "nl": "Super energiebesparende modus"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "thermav_controlmethod_is",
+        "title": {
+          "en": "Control method is",
+          "nl": "Regelmethode is"
+        },
+        "titleFormatted": {
+          "en": "Control method of [[device]] is [[method]]",
+          "nl": "Regelmethode van [[device]] is [[method]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          },
+          {
+            "type": "dropdown",
+            "name": "method",
+            "title": {
+              "en": "Method",
+              "nl": "Methode"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "water outlet temperature",
+                  "nl": "wateruitlaattemperatuur"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "water inlet temperature",
+                  "nl": "waterinlaattemperatuur"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "room air",
+                  "nl": "kamerlucht"
+                }
+              }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -286,6 +1166,9 @@
         "measure_water.waterflowrate",
         "measure_frequency.freqinverter",
         "measure_power.generatedheat",
+        "measure_power.generatedcold",
+        "meter_power.totalgeneratedheat",
+        "meter_power.totalgeneratedcold",
         "thermostat_mode.thermostat",
         "target_temperature.thermostat",
         "measure_temperature.thermostat",
@@ -306,13 +1189,6 @@
           "title": {
             "en": "Water Inlet Temperature",
             "nl": "Retour temperatuur"
-          },
-          "decimals": 1
-        },
-        "measure_temperature.temproomcircuit1": {
-          "title": {
-            "en": "Room Circuit 1 Temperature",
-            "nl": "Kamer 1 temperatuur"
           },
           "decimals": 1
         },
@@ -374,6 +1250,24 @@
             "nl": "Berekende Koudeopbrengst"
           }
         },
+        "meter_power.totalgeneratedheat": {
+          "decimals": 0,
+          "approximated": true,
+          "title": {
+            "en": "Total Heat Produced",
+            "nl": "Totale warmteopbrengst"
+          },
+          "uiComponent": null
+        },
+        "meter_power.totalgeneratedcold": {
+          "decimals": 0,
+          "approximated": true,
+          "title": {
+            "en": "Total Cold Produced",
+            "nl": "Totale koudeopbrengst"
+          },
+          "uiComponent": null
+        },
         "alarm_cold": {
           "title": {
             "en": "Defrosting",
@@ -399,7 +1293,29 @@
           "id": "start"
         }
       ],
+      "id": "thermav",
       "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Model"
+          },
+          "children": [
+            {
+              "id": "detectedmodel",
+              "type": "label",
+              "label": {
+                "en": "Detected heat pump",
+                "nl": "Detected heat pump"
+              },
+              "hint": {
+                "en": "Productgroup: 0x8X (0x80, 0x83, 0x88, 0x89) -> AWHP connected. Productinfo: only meaningful when an AWHP is connected. The type is one nibble of the register. Measured on a Monobloc AWHP: 0x1310, so the type (3 = Monobloc) is bits 8-11. The other nibbles are not documented and only shown as raw hex.",
+                "nl": "Productgroup: 0x8X (0x80, 0x83, 0x88, 0x89) -> AWHP connected. Productinfo: only meaningful when an AWHP is connected. The type is one nibble of the register. Measured on a Monobloc AWHP: 0x1310, so the type (3 = Monobloc) is bits 8-11. The other nibbles are not documented and only shown as raw hex."
+              },
+              "value": "unknown"
+            }
+          ]
+        },
         {
           "type": "group",
           "label": {
@@ -411,7 +1327,20 @@
               "type": "checkbox",
               "label": {
                 "en": "Silent Mode",
-                "nl": "Silent Mode"
+                "nl": "Stille Modus"
+              },
+              "value": false
+            },
+            {
+              "id": "settings_enable_dhw",
+              "type": "checkbox",
+              "label": {
+                "en": "Enable Domestic Hot Water",
+                "nl": "Sanitair warm water inschakelen"
+              },
+              "hint": {
+                "en": "Enables domestic hot water (DHW) on the heat pump. Note: disabling this removes the DHW capabilities (tank temperature, DHW target temperature and the DHW status indicators) and disables Trigger Desinfection.",
+                "nl": "Schakelt warm tapwater (SWW) in op de warmtepomp. Let op: uitschakelen verwijdert de DHW-capabilities (boilertemperatuur, DHW-doeltemperatuur en de DHW-statusindicatoren) en schakelt Trigger Desinfection uit."
               },
               "value": false
             },
@@ -420,11 +1349,11 @@
               "type": "checkbox",
               "label": {
                 "en": "Cooling Mode Enabled",
-                "nl": "Cooling Mode Enabled"
+                "nl": "Koel modus ingeschakeld"
               },
               "hint": {
                 "en": "Cooling mode enabled (DIP switch), see manual.",
-                "nl": "Cooling mode enabled (DIP switch), see manual."
+                "nl": "Koel modus ingeschakeld (DIP switch), zie handleiding."
               },
               "value": false
             },
@@ -436,8 +1365,17 @@
                 "nl": "Trigger Desinfection"
               },
               "hint": {
-                "en": "Only a trigger, will switch back to off on next update.",
-                "nl": "Alleen een trigger, springt uit bij volgende update."
+                "en": "Only a trigger, will switch back to off on next update. Only works when Enable DHW is on.",
+                "nl": "Alleen een trigger, springt uit bij volgende update. Werkt alleen als Enable DHW aan staat."
+              },
+              "value": false
+            },
+            {
+              "id": "debug_logging",
+              "type": "checkbox",
+              "label": {
+                "en": "Debug logging",
+                "nl": "Debug logging"
               },
               "value": false
             }
@@ -454,7 +1392,12 @@
               "type": "text",
               "value": "0.0.0.0",
               "label": {
-                "en": "IP Address"
+                "en": "IP Address",
+                "nl": "IP adres"
+              },
+              "hint": {
+                "en": "Enter the IP Address of the Modbus RTU converter",
+                "nl": "Voer het IP adres van de modbus RTU converter in."
               }
             },
             {
@@ -464,6 +1407,10 @@
               "step": 1,
               "label": {
                 "en": "Port"
+              },
+              "hint": {
+                "en": "Mostly common port is 502 for modbus communication.",
+                "nl": "Het meest gebruikelijke is poort 502 voor Modbus communicatie."
               }
             },
             {
@@ -477,6 +1424,10 @@
               },
               "label": {
                 "en": "Modbus ID"
+              },
+              "hint": {
+                "en": "Should match the modbus ID configured in the controller.",
+                "nl": "Voer hetzelfde ID in als in de controller."
               }
             },
             {
@@ -503,8 +1454,19 @@
             }
           ]
         }
-      ],
-      "id": "thermav"
+      ]
     }
-  ]
+  ],
+  "capabilities": {
+    "thermav_error": {
+      "type": "string",
+      "title": {
+        "en": "Current error",
+        "nl": "Huidige storing"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    }
+  }
 }

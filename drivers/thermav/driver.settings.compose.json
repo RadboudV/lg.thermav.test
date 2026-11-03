@@ -1,0 +1,159 @@
+  [
+ 	{
+	    "type": "group",
+        "label": {
+          "en": "Model"
+        },
+		"children": [
+		{
+			"id": "detectedmodel",
+			"type": "label",
+			"label": {
+				"en": "Detected heat pump",
+				"nl": "Detected heat pump"
+			},
+		"hint": {
+		"en": "Productgroup: 0x8X (0x80, 0x83, 0x88, 0x89) -> AWHP connected. Productinfo: only meaningful when an AWHP is connected. The type is one nibble of the register. Measured on a Monobloc AWHP: 0x1310, so the type (3 = Monobloc) is bits 8-11. The other nibbles are not documented and only shown as raw hex.",
+		"nl": "Productgroup: 0x8X (0x80, 0x83, 0x88, 0x89) -> AWHP connected. Productinfo: only meaningful when an AWHP is connected. The type is one nibble of the register. Measured on a Monobloc AWHP: 0x1310, so the type (3 = Monobloc) is bits 8-11. The other nibbles are not documented and only shown as raw hex."
+		},
+		"value": "unknown"
+		}
+	]
+	},
+	{
+	    "type": "group",
+        "label": {
+          "en": "LG Therma V settings"
+        },
+		"children": [
+		{
+		"id": "settings_enable_silent_mode",
+		"type": "checkbox",
+		"label": {
+		"en": "Silent Mode",
+		"nl": "Stille Modus"
+		},
+		"value": false
+  },
+  {
+		"id": "settings_enable_dhw",
+		"type": "checkbox",
+		"label": {
+		"en": "Enable Domestic Hot Water",
+		"nl": "Sanitair warm water inschakelen"
+		},
+		"hint": {
+		"en": "Enables domestic hot water (DHW) on the heat pump. Note: disabling this removes the DHW capabilities (tank temperature, DHW target temperature and the DHW status indicators) and disables Trigger Desinfection.",
+		"nl": "Schakelt warm tapwater (SWW) in op de warmtepomp. Let op: uitschakelen verwijdert de DHW-capabilities (boilertemperatuur, DHW-doeltemperatuur en de DHW-statusindicatoren) en schakelt Trigger Desinfection uit."
+		},
+		"value": false
+  },
+  {
+		"id": "settings_coolingmode",
+		"type": "checkbox",
+		"label": {
+		"en": "Cooling Mode Enabled",
+		"nl": "Koel modus ingeschakeld"
+		},
+		"hint": {
+		"en": "Cooling mode enabled (DIP switch), see manual.",
+		"nl": "Koel modus ingeschakeld (DIP switch), zie handleiding."
+		},
+		"value": false
+  },
+  {
+		"id": "settings_trigger_desinfection",
+		"type": "checkbox",
+		"label": {
+		"en": "Trigger Desinfection",
+		"nl": "Trigger Desinfection"
+		},
+		"hint": {
+		"en": "Only a trigger, will switch back to off on next update. Only works when Enable DHW is on.",
+		"nl": "Alleen een trigger, springt uit bij volgende update. Werkt alleen als Enable DHW aan staat."
+		},
+		"value": false
+  },
+  {
+  "id": "debug_logging",
+  "type": "checkbox",
+  "label": {
+    "en": "Debug logging",
+    "nl": "Debug logging"
+  },
+  "value": false
+}
+      ]
+    },
+	{
+      "type": "group",
+      "label": {
+        "en": "LG Therma V Modbus settings"
+      },
+      "children": [
+        {
+          "id": "address",
+          "type": "text",
+          "value": "0.0.0.0",
+          "label": {
+            "en": "IP Address",
+			"nl": "IP adres"
+          },
+		  "hint": {
+		  "en": "Enter the IP Address of the Modbus RTU converter",
+		  "nl": "Voer het IP adres van de modbus RTU converter in."
+		}
+        },
+        {
+          "id": "port",
+          "type": "number",
+          "value": 502,
+          "step": 1,
+          "label": {
+            "en": "Port"
+          },
+		  "hint": {
+		  "en": "Mostly common port is 502 for modbus communication.",
+		  "nl": "Het meest gebruikelijke is poort 502 voor Modbus communicatie."
+		}
+        },
+        {
+          "id": "id",
+          "type": "number",
+          "value": 1,
+          "step": 1,
+          "attr": {
+            "min": 0,
+            "max": 50
+          },
+          "label": {
+            "en": "Modbus ID"
+          },
+		  "hint": {
+		  "en": "Should match the modbus ID configured in the controller.",
+		  "nl": "Voer hetzelfde ID in als in de controller."
+		}
+        },
+		{
+          "id": "pollinginterval",
+          "type": "number",
+          "value": 30,
+          "min": 5,
+		  "max": 600,
+          "units": { "en": "seconds" },
+          "label": {
+            "en": "Polling interval"
+          }
+        },
+		{
+			"id": "modbusstatus",
+			"type": "label",
+			"label": {
+				"en": "Modbus Status",
+				"nl": "Modbus Status"
+			},
+		"value": "unknown"
+		}
+      ]
+	}
+  ]

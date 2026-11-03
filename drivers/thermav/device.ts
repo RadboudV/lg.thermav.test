@@ -1,22 +1,20 @@
 import * as Modbus from 'jsmodbus';
 import net from 'net';
 
-import { checkInputRegister } from '../response';
-import { checkHoldingRegister } from '../response';
-import { checkCoilRegister } from '../response';
-import { checkDiscreteRegister } from '../response';
-
-import { checkWriteHoldingRegister } from '../response';
-import { checkWriteCoilRegister } from '../response';
-
+import {
+  checkInputRegister,
+  checkHoldingRegister,
+  checkCoilRegister,
+  checkDiscreteRegister,
+  isModbusException,
+} from '../../lib/modbus';
+import { holdingregisters, inputregisters, coilregisters, discreteregisters } from '../../lib/registers';
 
 import { ThermaV } from '../thermav';
 
-import Homey from 'homey';
 
-// Set default retry / polling interval >= timeout of reading all modbus registers!
-const DEFAULT_RETRY_INTERVAL = 30;
-const DEFAULT_RECONNECT_INTERVAL = 600;
+// Set default polling interval (seconds) >= time needed to read all modbus registers!
+const DEFAULT_POLLING_INTERVAL = 30;
 // After a write, ignore register values from polls for this long (heat pump needs time to apply the change)
 const WRITE_SETTLE_MS = 5000;
 // Mark the device unavailable after this many failed polls/writes in a row
@@ -31,12 +29,27 @@ const SHIFT_MAX = 5;
 // Thermostat mode -> value of holding register 0
 const MODE_REGISTER: Record<string, number> = { cool: 0, heat: 4, auto: 3 };
 
-type WriteType = 'settemperature' | 'settemperatureshift' | 'setthermostatmode' | 'setsilentmode' | 'setonoff';
+// Product identification (input registers, read once per app start, not on every poll).
+// Manual numbering 39998 / 39999 = 30001 + address 9997 / 9998.
+const PRODUCT_GROUP_ADDRESS = 9997;   // 39998 Productgroep: 0x8X (0x80, 0x83, 0x88, 0x89) -> AWHP connected
+const PRODUCT_INFO_ADDRESS = 9998;    // 39999 Productinfo: only meaningful when an AWHP is connected
+// 39999 Productinfo: the type is one nibble of the register. Measured on a Monobloc AWHP: 0x1310,
+// so the type (3 = Monobloc) is bits 8-11. The other nibbles are not documented and only shown as raw hex.
+const productType = (info: number) => (info >> 8) & 0x0F;
+const PRODUCT_INFO_NAMES: Record<number, string> = {
+  0: 'Split',
+  3: 'Monobloc',
+  4: 'High temp.',
+  5: 'Medium temp.',
+  6: 'System boiler',
+};
+
+type WriteType = 'settemperature' | 'settemperatureshift' | 'setthermostatmode' | 'setsilentmode' | 'setonoff' | 'setenabledhw' | 'settriggerdesinfection' | 'setdhwtemperature' | 'settemperature2' | 'settemperatureshift2' | 'setenergystate';
 
 //module.exports = class thermavDevice extends Homey.Device {
 class MyThermaVDevice extends ThermaV {
-	timer!: NodeJS.Timer;
-
+	//timer!: NodeJS.Timer;
+  private pollTimer?: NodeJS.Timer;
 
   private socket: net.Socket | null = null;
   private client: InstanceType<typeof Modbus.client.TCP> | null = null;
@@ -44,6 +57,9 @@ class MyThermaVDevice extends ThermaV {
   private busy = false;            // one Modbus transaction sequence at a time (poll OR write)
   private failures = 0;
   private lastWrite = 0;           // timestamp (ms) of the last successful write to the heat pump
+  private productDetected = false;   // product registers are read once (until that succeeds), not on every poll
+  protected isAwhp: boolean | null = null;   // null = not detected yet
+  protected productInfo: number | null = null;
   private available: boolean | null = null;   // last availability state reported to Homey (null = not reported yet)
 
   // ---- availability --------------------------------------------------------
@@ -54,7 +70,7 @@ class MyThermaVDevice extends ThermaV {
     if (this.available !== true) {
       this.available = true;
       this.setAvailable().catch(this.error);
-      this.log('Heat pump reachable, device set available');
+      this.debug('Heat pump reachable, device set available');
     }
   }
 
@@ -64,7 +80,7 @@ class MyThermaVDevice extends ThermaV {
     if (this.failures >= UNAVAILABLE_AFTER_FAILURES && this.available !== false) {
       this.available = false;
       this.setUnavailable(`Heat pump not reachable (${reason})`).catch(this.error);
-      this.log('Heat pump not reachable, device set unavailable:', reason);
+      this.debug('Heat pump not reachable, device set unavailable:', reason);
     }
   }
 
@@ -113,33 +129,81 @@ class MyThermaVDevice extends ThermaV {
     this.client = null;
   }
  
+   // ---- product detection (once) ----------------------------------------------
+
+  /**
+   * Read the product registers and show the result under the device settings (setting 'detectedmodel').
+   * Called from the first successful poll. A dead link throws, so the next poll tries again;
+   * a Modbus exception (register not supported) is final for this app run.
+   * Must run while this.busy is held and the connection is up.
+   */
+  private async detectProduct(client: InstanceType<typeof Modbus.client.TCP>) {
+    let label: string;
+    try {
+      const group = (await client.readInputRegisters(PRODUCT_GROUP_ADDRESS, 1)).response.body.valuesAsArray[0] as number;
+      const isAwhp = (group & 0xF0) === 0x80;            // low byte 0x8x
+      let info: number | null = null;
+      if (isAwhp) {
+        info = (await client.readInputRegisters(PRODUCT_INFO_ADDRESS, 1)).response.body.valuesAsArray[0] as number;
+      }
+      this.isAwhp = isAwhp;
+      this.productInfo = info;
+      const hex = (v: number) => '0x' + v.toString(16).toUpperCase().padStart(4, '0');
+      label = isAwhp
+        ? `AWHP ${PRODUCT_INFO_NAMES[productType(info!)] ?? `unknown type ${productType(info!)}`} (group ${hex(group)}, info ${hex(info!)})`
+        : `No AWHP (group ${hex(group)})`;
+    } catch (err) {
+      if (!isModbusException(err)) throw err;            // link problem: retry on the next poll
+      this.isAwhp = null;
+      this.productInfo = null;
+      label = 'Not supported by this heat pump';
+      this.debug('Product registers rejected:', (err as any)?.message ?? err);
+    }
+    this.productDetected = true;
+    this.log('Detected product:', label);
+    if (this.getSetting('detectedmodel') !== label) {
+      await this.setSettings({ detectedmodel: label }).catch(this.error);
+    }
+  }
+
+   // ---- polling timer ---------------------------------------------------------
+
+  private startPolling(intervalSeconds: number) {
+    this.stopPolling();
+    this.pollTimer = this.homey.setInterval(() => { this.pollHeatpump(); }, intervalSeconds * 1000);
+  }
+
+  private stopPolling() {
+    if (this.pollTimer) this.homey.clearInterval(this.pollTimer);
+    this.pollTimer = undefined;
+  }
+
   /**
    * onInit is called when the device is initialized.
    */
   async onInit() {
-    this.log('ThermaV device has been initialized:', this.getName(), 'Device name id:', this.getData().id);
+    this.debug('ThermaV device has been initialized:', this.getName(), 'Device name id:', this.getData().id);
  
-	let settings = this.getSettings();
-
-    if (settings.pollinginterval === undefined) {
-      this.setSettings({ pollinginterval: DEFAULT_RETRY_INTERVAL });
-      settings.pollinginterval = DEFAULT_RETRY_INTERVAL;
-	}
+	let interval = Number(this.getSetting('pollinginterval'));
+	
+    if (!interval) {
+      interval = DEFAULT_POLLING_INTERVAL;
+      await this.setSettings({ pollinginterval: interval });
+    }
 
 // Register capability listeners
 // ThermostatMode
     this.registerCapabilityListener('target_temperature.thermostat', (value: number) => this.setTargetTemperature(value));
 // Target Temperature
     this.registerCapabilityListener('thermostat_mode.thermostat', (value: string) => this.setThermostatMode(value));
+// Circuit 2 target temperature (the capability only exists while circuit 2 is active)
+    this.registerCapabilityListener('target_temperature.thermostat2', (value: number) => this.setTargetTemperature2(value));
+// DHW target temperature (the capability only exists while DHW is enabled)
+    this.registerCapabilityListener('target_temperature.dhw', (value: number) => this.setDhwTargetTemperature(value));
 
-    this.timer = this.homey.setInterval(() => {
-      // poll device state from HeatPump
-      this.pollHeatpump();
-    }, settings.pollinginterval * 1000);
-
-    this.pollHeatpump(); // Single Poll (after the interval default is applied and the timer is set)
-
-
+	this.startPolling(interval);
+    this.pollHeatpump();   // first poll right away
+	
 // Flow Cards ar registered inside driver.ts
 //
 // End Flow Cards Actions
@@ -150,7 +214,7 @@ class MyThermaVDevice extends ThermaV {
    * onAdded is called when the user adds the device, called just after pairing.
    */
   async onAdded() {
-    this.log('ThermaV device has been added');
+    this.debug('ThermaV device has been added');
   }
 
   /**
@@ -171,27 +235,17 @@ class MyThermaVDevice extends ThermaV {
     changedKeys: string[];
   }): Promise<string | void> {
   
-    this.log("ThermaV settings where changed");
+    this.debug("ThermaV settings where changed");
 
-//Silent Mode
+// Silent mode toggled by the user in the settings page (a setSettings() call from code does not end up here)
     if (changedKeys.includes('settings_enable_silent_mode')) {
-	  this.log('ThermaV settings "settings_enable_silent_mode" were changed. Changed settings from', oldSettings.settings_enable_silent_mode, 'to', newSettings.settings_enable_silent_mode);
-	  
-	  this.homey.clearInterval(this.timer);
-	  
-	  this.updateHeatpumpv2('setsilentmode', Number(newSettings.settings_enable_silent_mode), this);
-	  
-      this.timer = this.homey.setInterval(() => {
-      // poll device state from HeatPump
-      this.pollHeatpump();
-      }, Number(newSettings.pollinginterval) * 1000); // Gaat dat goed newsettings(maar is eigenlijk voor andere geupdate waarde)
-
+      await this.writeHeatpump('setsilentmode', newSettings.settings_enable_silent_mode ? 1 : 0);
     }
 
 // Connection settings changed: the persistent socket still points at the old host/port/unit id.
 // Drop it and poll again so the device becomes (un)available based on the new settings.
     if (['address', 'port', 'id'].some((k) => changedKeys.includes(k))) {
-	  this.log('Connection settings changed, reconnecting');
+	  this.debug('Connection settings changed, reconnecting');
 	  this.dropConnection();
 	  this.failures = 0;
 	  this.available = null;
@@ -199,22 +253,29 @@ class MyThermaVDevice extends ThermaV {
 	  this.homey.setTimeout(() => this.pollHeatpump(), 1000);
     }
 
-//Trigger Desinfection
-    if (changedKeys.includes('settings_trigger_desinfection')) {
-	  this.log('ThermaV settings "settings_trigger_desinfection" were changed. Changed settings from', oldSettings.settings_trigger_desinfection, 'to', newSettings.settings_trigger_desinfection);
+// Desinfection is part of DHW: refuse it (before anything is written) when DHW is not enabled
+    const wantsDesinfection = changedKeys.includes('settings_trigger_desinfection') && Boolean(newSettings.settings_trigger_desinfection);
+    if (wantsDesinfection && !newSettings.settings_enable_dhw) {
+      throw new Error('Trigger Desinfection only works when "Enable DHW" is on.');
+    }
+
+// Enable DHW toggled by the user: write the coil. The DHW capabilities follow on the next poll.
+    if (changedKeys.includes('settings_enable_dhw')) {
+      this.debug('Enable DHW changed from', oldSettings.settings_enable_dhw, 'to', newSettings.settings_enable_dhw);
+      await this.writeHeatpump('setenabledhw', newSettings.settings_enable_dhw ? 1 : 0);
+    }
+
+//Trigger Desinfection (only a trigger: the checkbox is switched back off right after the write)
+    if (wantsDesinfection) {
+      await this.writeHeatpump('settriggerdesinfection', 1);
+      this.homey.setTimeout(() => this.setSettings({ settings_trigger_desinfection: false }).catch(this.error), 1000);
     }
 
 //Polling Interval has changed, clear current timer and set and start new timer
-    if (changedKeys.indexOf('pollinginterval') > -1) {
-      this.log('Changing the "pollinginterval" settings from', oldSettings.pollinginterval, 'to', newSettings.pollinginterval);
-
-      this.homey.clearInterval(this.timer);
-      this.timer = this.homey.setInterval(() => {
-        // poll device state from HeatPump
-        this.pollHeatpump();
-      }, Number(newSettings.pollinginterval) * 1000);
+    if (changedKeys.includes('pollinginterval')) {
+      this.debug('Polling interval changed from', oldSettings.pollinginterval, 'to', newSettings.pollinginterval);
+      this.startPolling(Number(newSettings.pollinginterval));
     }
-	
   }
 
   /**
@@ -223,15 +284,15 @@ class MyThermaVDevice extends ThermaV {
    * @param {string} name The new name
    */
  async onRenamed(name: string) {
-    this.log('ThermaV device was renamed');
+    this.debug('ThermaV device was renamed to', name);
   }
 
 //********************************************************
 // onDeleted is called when the user deleted the device.
 //******************************************************** 
   async onDeleted() {
-    this.log('ThermaV device has been deleted');
-    this.homey.clearInterval(this.timer);
+    this.debug('ThermaV device has been deleted');
+    this.stopPolling();
 	this.dropConnection();
   }
 //********************************************************
@@ -241,37 +302,80 @@ class MyThermaVDevice extends ThermaV {
 // onUninit.
 //********************************************************
   async onUninit() {
-    this.log('ThermaV device has been Un initialized.');
-    this.homey.clearInterval(this.timer);
+    this.debug('ThermaV device has been Un initialized.');
+    this.stopPolling();
 	this.dropConnection();
   }
 //********************************************************
 
-  // ---- actions (used by capability listeners and by the flow cards in driver.ts) ------
+
+//**************************************************************************************
+// ---- actions (used by capability listeners and by the flow cards in driver.ts) ------
+//**************************************************************************************
 
   /** Thermostat setpoint. In 'auto' mode the pump works with a shift value instead of an absolute target. */
   async setTargetTemperature(value: number) {
     if (this.getCapabilityValue('thermostat_mode.thermostat') === 'auto') {
       if (this.shiftValue === undefined) throw new Error('Shift value not known yet, try again after the next poll');
-      const direction = Math.sign(value - Number(this.getCapabilityValue('target_temperature.thermostat')));
-      if (direction === 0) return;
+      const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature.thermostat')));   // 1 step from the app, more from a flow card
+      if (delta === 0) return;
       const current = this.shiftValue > 32767 ? this.shiftValue - 65536 : this.shiftValue;   // unsigned -> signed
-      const next = Math.min(SHIFT_MAX, Math.max(SHIFT_MIN, current + direction));
+      const next = Math.min(SHIFT_MAX, Math.max(SHIFT_MIN, current + delta));
       if (next === current) {
-        this.log('Shift value already at its limit:', current);
+        this.debug('Shift value already at its limit:', current);
         return;
       }
-      this.log('Set shift value:', current, '->', next);
+      this.debug('Set shift value:', current, '->', next);
       await this.writeHeatpump('settemperatureshift', next & 0xFFFF);        // signed -> unsigned
       this.shiftValue = next & 0xFFFF;
       return;
     }
-    this.log('Set temperature:', value);
+    this.debug('Set temperature:', value);
     await this.writeHeatpump('settemperature', Math.round(value * 10));
   }
 
+  /**
+   * Circuit 2 setpoint (holding 40006), or in 'auto' mode the shift value (holding 40008), exactly like circuit 1.
+   * The operating mode is shared by both circuits.
+   */
+  async setTargetTemperature2(value: number) {
+    // The circuit 2 capability only exists while temptarget2 is not 0
+    if (!this.hasCapability('target_temperature.thermostat2')) throw new Error('Circuit 2 is not in use');
+    if (this.getCapabilityValue('thermostat_mode.thermostat') === 'auto') {
+      if (this.shiftValue2 === undefined) throw new Error('Shift value circuit 2 not known yet, try again after the next poll');
+      const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature.thermostat2')));
+      if (delta === 0) return;
+      const current = this.shiftValue2 > 32767 ? this.shiftValue2 - 65536 : this.shiftValue2;   // unsigned -> signed
+      const next = Math.min(SHIFT_MAX, Math.max(SHIFT_MIN, current + delta));
+      if (next === current) {
+        this.debug('Shift value circuit 2 already at its limit:', current);
+        return;
+      }
+      this.debug('Set shift value circuit 2:', current, '->', next);
+      await this.writeHeatpump('settemperatureshift2', next & 0xFFFF);        // signed -> unsigned
+      this.shiftValue2 = next & 0xFFFF;
+      return;
+    }
+    this.debug('Set temperature circuit 2:', value);
+    await this.writeHeatpump('settemperature2', Math.round(value * 10));
+  }
+
+  /** Energy state input (holding 40010): 0 not used ... 8 super energy saving mode. */
+  async setEnergyState(state: number) {
+    if (!Number.isInteger(state) || state < 0 || state > 8) throw new Error(`Energy state must be 0-8 (got ${state})`);
+    this.debug('Set energy state:', state);
+    await this.writeHeatpump('setenergystate', state);
+  }
+
+  /** DHW setpoint: holding register 8 in 0.1 °C units. Only possible while DHW is enabled. */
+  async setDhwTargetTemperature(value: number) {
+    if (this.dhwEnabled !== true) throw new Error('Enable DHW first to set the DHW target temperature');
+    this.debug('Set DHW target temperature:', value);
+    await this.writeHeatpump('setdhwtemperature', Math.round(value * 10));
+  }
+
   async setThermostatMode(mode: string) {
-    this.log('Set thermostat mode:', mode);
+    this.debug('Set thermostat mode:', mode);
     if (mode === 'off') {
       await this.writeHeatpump('setonoff', 0);
       return;
@@ -294,13 +398,14 @@ class MyThermaVDevice extends ThermaV {
   }
 
 
-//********************************************************
+//**************************************************************************************
   /**
    * Poll the heatpump
    */
+//**************************************************************************************
   async pollHeatpump() {
 	
-	this.log("pollHeatpump");
+	this.debug("pollHeatpump");
 	if (this.busy) return;                 // previous poll/write still running -> skip
 	this.busy = true;
 
@@ -308,17 +413,21 @@ class MyThermaVDevice extends ThermaV {
       await this.connect();                // no-op when already connected
       const client = this.client!;
 
+      if (!this.productDetected) await this.detectProduct(client);   // once per start
+
       const finalRes = {
-        ...(await checkInputRegister(this.inputregisters, client)),
-        ...(await checkHoldingRegister(this.holdingregisters, client)),
-        ...(await checkCoilRegister(this.coilregisters, client)),
-        ...(await checkDiscreteRegister(this.discreteregisters, client)),
+        ...(await checkInputRegister(inputregisters, client)),
+        ...(await checkHoldingRegister(holdingregisters, client)),
+        ...(await checkCoilRegister(coilregisters, client)),
+        ...(await checkDiscreteRegister(discreteregisters, client)),
       };
       // NOTE: the check*Register helpers currently swallow per-register errors.
       // If *every* register failed, treat it as a dead link:
       if (Object.keys(finalRes).length === 0) throw new Error('no registers could be read');
  
       this.markSuccess();
+      this.snapshot = finalRes;              // condition cards read from this
+      this.snapshotTime = Date.now();
       if (this.getSetting('modbusstatus') !== 'Connected') {
         this.setSettings({ modbusstatus: 'Connected' }).catch(this.error);   // only write when the value changes
       }
@@ -326,7 +435,7 @@ class MyThermaVDevice extends ThermaV {
       if (Date.now() - this.lastWrite >= WRITE_SETTLE_MS) {
         await this.processResult(finalRes);
       } else {
-        this.log('pollHeatpump: skipping processResult, write settling');
+        this.debug('pollHeatpump: skipping processResult, write settling');
       }
 
       // Heat output. A register that could not be read must not fail the poll: treat it as "no output".
@@ -339,41 +448,33 @@ class MyThermaVDevice extends ThermaV {
       const flowRate = val(finalRes.waterflowrate);
       const tempOut = val(finalRes.tempwateroutlet);
       const tempIn = val(finalRes.tempwaterinlet);
+	  const compressorOn = val(finalRes.statuscompressor) === 1;
 
-      if (val(finalRes.statuswaterflow) == 1 && val(finalRes.statuscompressor) == 1
+//      if (val(finalRes.waterflowrate) > 5 && val(finalRes.statuscompressor) == 1
+//          && Number.isFinite(flowRate) && Number.isFinite(tempOut) && Number.isFinite(tempIn)) {
+//        const heatOutput = Math.round(flowRate * 60 * (tempOut - tempIn) * 1.16227);
+//        producedheat = Math.max(0, heatOutput);
+//        producedcold = Math.min(0, heatOutput);
+//      }
+
+      if (flowRate > 5 && compressorOn
           && Number.isFinite(flowRate) && Number.isFinite(tempOut) && Number.isFinite(tempIn)) {
-        // Filter out negative values; returns the maximum of values (all above 0)
-        const heatOutput = Math.round(flowRate * 60 * (tempOut - tempIn) * 1.16227);
-        producedheat = Math.max(0, heatOutput);
-        producedcold = Math.min(0, heatOutput);
+        const energyOutput = Math.round(flowRate * 60 * (tempOut - tempIn) * 1.16227);
+        producedheat = Math.max(0, energyOutput);
+        producedcold = Math.max(0, -energyOutput); // Store the cooling energy produced as positive value
       }
- 
-	if (!this.hasCapability('measure_power.generatedheat')) {
-      await this.addCapability('measure_power.generatedheat').catch(this.error);;
-    }
 
-   if (!this.hasCapability('meter_power.totalgeneratedheat')) {
-	  await this.addCapability('meter_power.totalgeneratedheat').catch(this.error);;
-	  await this.setCapabilityOptions('meter_power.totalgeneratedheat', { "title": {
-						"en": "Total Heat Produced",
-						"nl": "Totale warmteopbrengst"
-						},
-						"uiComponent": null
-						});
-    }
-	
-//	var producedheat = 0;
       this.setCapabilityValue('measure_power.generatedheat', producedheat);
-	  var totalproducedheat = ((this.getCapabilityValue('meter_power.totalgeneratedheat')) + (((producedheat * this.getSettings().pollinginterval)/3600)/1000));
-	  this.setCapabilityValue('meter_power.totalgeneratedheat', totalproducedheat); 
-	  // this.setCapabilityValue('meter_power.totalgeneratedheat', 0);
-
-
-   if (!this.hasCapability('measure_power.generatedcold')) {
-      await this.addCapability('measure_power.generatedcold').catch(this.error);;
-    }
-//	var producedcold = 0;
       this.setCapabilityValue('measure_power.generatedcold', producedcold);
+
+	  const currentpollingInterval = this.getSettings().pollinginterval;
+	  
+	  var totalproducedheat = ((this.getCapabilityValue('meter_power.totalgeneratedheat')) + (((producedheat * currentpollingInterval)/3600)/1000));
+	  this.setCapabilityValue('meter_power.totalgeneratedheat', totalproducedheat); 
+
+	  var totalproducedcold = ((this.getCapabilityValue('meter_power.totalgeneratedcold')) + (((producedcold * currentpollingInterval)/3600)/1000));
+	  this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold); 
+
 	  
     } catch (err) {
       this.error('poll failed', (err as Error).message);
@@ -388,42 +489,8 @@ class MyThermaVDevice extends ThermaV {
   }
 
 //*****************************************************************************************************
-// Update Heatpump settings
+// Write Heatpump
 //*****************************************************************************************************
-async updateHeatpumpv2(type: string, value: number, device: Homey.Device) {
-	this.log("updateHeatpumpv2");
-    // wait for a running poll to finish instead of clearing/restarting the timer
-    const deadline = Date.now() + WRITE_WAIT_MS;
-    while (this.busy) {
-      if (Date.now() > deadline) throw new Error('Heat pump is busy, try again');
-      await new Promise((r) => this.homey.setTimeout(r, 100));
-    }
-    this.busy = true;
-    try {
-      await this.connect();
-      const c = this.client!;
-      switch (type) {
-        case 'settemperature':      await c.writeSingleRegister(2, value); break;
-        case 'settemperatureshift': await c.writeSingleRegister(4, value); break;
-        case 'setthermostatmode':   await c.writeSingleRegister(0, value); break;
-        case 'setsilentmode':       await c.writeSingleCoil(2, Boolean(value)); break;
-        case 'setonoff':            await c.writeSingleCoil(0, Boolean(value)); break;
-      }
-      this.lastWrite = Date.now();
-      this.markSuccess();                  // a successful write proves the heat pump is reachable
-    } catch (err) {
-      // Not counted as an availability failure: a Modbus exception (e.g. rejected value) is not a connection
-      // problem. The poll loop decides when the device is unavailable.
-	  const message = (err as any)?.message ?? String(err);
-      this.error('write failed', type, (err as Error).message);
-      this.dropConnection();
-	  throw new Error(`Writing to the heat pump failed: ${message}`);
-    } finally {
-      this.busy = false;
-    }
-  }
-//*****************************************************************************************************
-
  /**
    * Write one value to the heat pump. Throws when the write fails, so the caller (capability listener,
    * flow card, settings page) shows the error to the user.
@@ -433,7 +500,7 @@ async updateHeatpumpv2(type: string, value: number, device: Homey.Device) {
     const deadline = Date.now() + WRITE_WAIT_MS;
     while (this.busy) {
       if (Date.now() > deadline) throw new Error('Heat pump is busy, try again');
-      await new Promise((r) => this.homey.setTimeout(r, 100));
+      await new Promise((resolve) => this.homey.setTimeout(resolve, 100));
     }
     this.busy = true;
     try {
@@ -445,6 +512,12 @@ async updateHeatpumpv2(type: string, value: number, device: Homey.Device) {
         case 'setthermostatmode':   await c.writeSingleRegister(0, value); break;
         case 'setsilentmode':       await c.writeSingleCoil(2, Boolean(value)); break;
         case 'setonoff':            await c.writeSingleCoil(0, Boolean(value)); break;
+        case 'setenergystate':      await c.writeSingleRegister(9, value); break;
+        case 'setdhwtemperature':   await c.writeSingleRegister(8, value); break;
+        case 'settemperature2':      await c.writeSingleRegister(5, value); break;
+        case 'settemperatureshift2': await c.writeSingleRegister(7, value); break;
+        case 'setenabledhw':        await c.writeSingleCoil(1, Boolean(value)); break;
+        case 'settriggerdesinfection': await c.writeSingleCoil(3, Boolean(value)); break;
       }
       this.lastWrite = Date.now();
       this.markSuccess();                  // a successful write proves the heat pump is reachable
