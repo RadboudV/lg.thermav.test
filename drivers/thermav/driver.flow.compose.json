@@ -526,7 +526,7 @@
         {
           "type": "device",
           "name": "device",
-          "filter": "driver_id=thermav&capabilities=target_temperature.thermostat2"
+          "filter": "driver_id=thermav&capabilities=target_temperature.circuit2"
         },
         {
           "type": "number",

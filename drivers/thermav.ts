@@ -10,8 +10,8 @@ const title = (en: string, nl: string = en) => ({ en, nl });
 // Circuit 2 (second heating/cooling circuit). There is no "installed" register; per the user's finding circuit 2 is in use
 // when 'temptarget2' (holding 40006) is not 0. Capabilities are added then and removed again when it returns to 0.
 // The operating mode (heat/cool/auto/off) is shared with circuit 1, so circuit 2 has no mode capability of its own.
-const CIRCUIT2_TARGET = 'target_temperature.thermostat2';
-const CIRCUIT2_ROOM   = 'measure_temperature.thermostat2';
+const CIRCUIT2_TARGET = 'target_temperature.circuit2';
+const CIRCUIT2_ROOM   = 'measure_temperature.circuit2';
 const CIRCUIT2_CAPABILITIES: Record<string, Record<string, unknown>> = {
 	// min/max: the default range of target_temperature (4-35) is too small for a water temperature setpoint
 	[CIRCUIT2_TARGET]: { title: title('Target Temperature Circuit 2', 'Doeltemperatuur circuit 2'), decimals: 0, step: 1, min: 5, max: 65 },
@@ -332,26 +332,26 @@ protected debug(...args: any[]): void {
 //            }
 
             if (result['temptarget1'] && result['temptarget1'].value != 'xxx') {
-				if (!this.hasCapability('target_temperature.thermostat')) {
-					await this.addCapability('target_temperature.thermostat');
+				if (!this.hasCapability('target_temperature')) {
+					await this.addCapability('target_temperature');
 				}
                 //var temptarget1 = Number(result['temptarget1'].value) * (Math.pow(10, Number(result['temptarget1'].scale)));
 				const temptarget1 = this.getScaledValue(result['temptarget1']);
 				const current = this.getCapabilityValue('measure_temperature.tempwaterinlet');
 				if (current !== temptarget1) {
-					await this.setCapabilityValue('target_temperature.thermostat', Math.round(temptarget1));
+					await this.setCapabilityValue('target_temperature', Math.round(temptarget1));
 				}
             }
 
             if (result['temproomcircuit1'] && result['temproomcircuit1'].value != 'xxx') {
-				if (!this.hasCapability('measure_temperature.thermostat')) {
-					await this.addCapability('measure_temperature.thermostat');
+				if (!this.hasCapability('measure_temperature')) {
+					await this.addCapability('measure_temperature');
 				}
                 //var temproomcircuit1 = Number(result['temproomcircuit1'].value) * (Math.pow(10, Number(result['temproomcircuit1'].scale)));
 				const temproomcircuit1 = this.getScaledValue(result['temproomcircuit1']);
-				const current = this.getCapabilityValue('measure_temperature.thermostat');
+				const current = this.getCapabilityValue('measure_temperature');
 				if (current !== temproomcircuit1) {
-					await this.setCapabilityValue('measure_temperature.thermostat', temproomcircuit1);
+					await this.setCapabilityValue('measure_temperature', temproomcircuit1);
 				}
             }
  
@@ -594,19 +594,19 @@ protected debug(...args: any[]): void {
 
 		// Thermostat mode
 		if (this.isValid(result.operatingmode)) {
-			//await this.ensureCapability('thermostat_mode.thermostat');
-				if (!this.hasCapability('thermostat_mode.thermostat')) {
-					await this.addCapability('thermostat_mode.thermostat');
+			//await this.ensureCapability('thermostat_mode');
+				if (!this.hasCapability('thermostat_mode')) {
+					await this.addCapability('thermostat_mode');
 				}
 
 				const mode = this.enableHeatingCooling === 0
 					? 'off'
 					: (OPERATING_MODES[result.operatingmode.value] ?? 'off');
 
-				//await this.updateCapability('thermostat_mode.thermostat', mode);
-				const current = this.getCapabilityValue('thermostat_mode.thermostat');
+				//await this.updateCapability('thermostat_mode', mode);
+				const current = this.getCapabilityValue('thermostat_mode');
 				if (current !== mode) {
-					await this.setCapabilityValue('thermostat_mode.thermostat', mode);
+					await this.setCapabilityValue('thermostat_mode', mode);
 				}
 
 		}

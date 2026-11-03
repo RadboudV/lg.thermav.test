@@ -44,6 +44,17 @@ const PRODUCT_INFO_NAMES: Record<number, string> = {
   6: 'System boiler',
 };
 
+// Capabilities that were renamed. Devices that were added with the old ids are migrated once in onInit:
+// the new capability is added, the value is copied and the old one is removed. [old id, new id, options of the new capability]
+// (Flows built on the old capabilities have to be re-created, the flow cards belong to the capability id.)
+const RENAMED_CAPABILITIES: Array<[string, string, Record<string, unknown> | undefined]> = [
+  ['thermostat_mode.thermostat',    'thermostat_mode',    undefined],
+  ['target_temperature.thermostat', 'target_temperature', { decimals: 0, step: 1 }],
+  ['measure_temperature.thermostat', 'measure_temperature', undefined],
+];
+// Circuit 2 capabilities come and go with temptarget2: the old ids are only removed, processCircuit2 adds the new ones (with their options).
+const REMOVED_CAPABILITIES = ['target_temperature.thermostat2', 'measure_temperature.thermostat2'];
+
 type WriteType = 'settemperature' | 'settemperatureshift' | 'setthermostatmode' | 'setsilentmode' | 'setonoff' | 'setenabledhw' | 'settriggerdesinfection' | 'setdhwtemperature' | 'settemperature2' | 'settemperatureshift2' | 'setenergystate';
 
 //module.exports = class thermavDevice extends Homey.Device {
@@ -178,11 +189,31 @@ class MyThermaVDevice extends ThermaV {
     this.pollTimer = undefined;
   }
 
+  /** One-off rename of capability ids on devices that were added with the old ids (see RENAMED_CAPABILITIES). */
+  private async migrateCapabilities() {
+    for (const [oldId, newId, options] of RENAMED_CAPABILITIES) {
+      if (!this.hasCapability(oldId)) continue;
+      if (!this.hasCapability(newId)) {
+        const value = this.getCapabilityValue(oldId);
+        await this.addCapability(newId);
+        if (options) await this.setCapabilityOptions(newId, options);
+        if (value !== null && value !== undefined) await this.setCapabilityValue(newId, value).catch(this.error);
+      }
+      await this.removeCapability(oldId);
+      this.log('Capability renamed:', oldId, '->', newId);
+    }
+    for (const oldId of REMOVED_CAPABILITIES) {
+      if (this.hasCapability(oldId)) await this.removeCapability(oldId).catch(this.error);
+    }
+  }
+
   /**
    * onInit is called when the device is initialized.
    */
   async onInit() {
     this.debug('ThermaV device has been initialized:', this.getName(), 'Device name id:', this.getData().id);
+
+    await this.migrateCapabilities();
  
 	let interval = Number(this.getSetting('pollinginterval'));
 	
@@ -193,11 +224,11 @@ class MyThermaVDevice extends ThermaV {
 
 // Register capability listeners
 // ThermostatMode
-    this.registerCapabilityListener('target_temperature.thermostat', (value: number) => this.setTargetTemperature(value));
+    this.registerCapabilityListener('target_temperature', (value: number) => this.setTargetTemperature(value));
 // Target Temperature
-    this.registerCapabilityListener('thermostat_mode.thermostat', (value: string) => this.setThermostatMode(value));
+    this.registerCapabilityListener('thermostat_mode', (value: string) => this.setThermostatMode(value));
 // Circuit 2 target temperature (the capability only exists while circuit 2 is active)
-    this.registerCapabilityListener('target_temperature.thermostat2', (value: number) => this.setTargetTemperature2(value));
+    this.registerCapabilityListener('target_temperature.circuit2', (value: number) => this.setTargetTemperature2(value));
 // DHW target temperature (the capability only exists while DHW is enabled)
     this.registerCapabilityListener('target_temperature.dhw', (value: number) => this.setDhwTargetTemperature(value));
 
@@ -315,9 +346,9 @@ class MyThermaVDevice extends ThermaV {
 
   /** Thermostat setpoint. In 'auto' mode the pump works with a shift value instead of an absolute target. */
   async setTargetTemperature(value: number) {
-    if (this.getCapabilityValue('thermostat_mode.thermostat') === 'auto') {
+    if (this.getCapabilityValue('thermostat_mode') === 'auto') {
       if (this.shiftValue === undefined) throw new Error('Shift value not known yet, try again after the next poll');
-      const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature.thermostat')));   // 1 step from the app, more from a flow card
+      const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature')));   // 1 step from the app, more from a flow card
       if (delta === 0) return;
       const current = this.shiftValue > 32767 ? this.shiftValue - 65536 : this.shiftValue;   // unsigned -> signed
       const next = Math.min(SHIFT_MAX, Math.max(SHIFT_MIN, current + delta));
@@ -340,10 +371,10 @@ class MyThermaVDevice extends ThermaV {
    */
   async setTargetTemperature2(value: number) {
     // The circuit 2 capability only exists while temptarget2 is not 0
-    if (!this.hasCapability('target_temperature.thermostat2')) throw new Error('Circuit 2 is not in use');
-    if (this.getCapabilityValue('thermostat_mode.thermostat') === 'auto') {
+    if (!this.hasCapability('target_temperature.circuit2')) throw new Error('Circuit 2 is not in use');
+    if (this.getCapabilityValue('thermostat_mode') === 'auto') {
       if (this.shiftValue2 === undefined) throw new Error('Shift value circuit 2 not known yet, try again after the next poll');
-      const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature.thermostat2')));
+      const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature.circuit2')));
       if (delta === 0) return;
       const current = this.shiftValue2 > 32767 ? this.shiftValue2 - 65536 : this.shiftValue2;   // unsigned -> signed
       const next = Math.min(SHIFT_MAX, Math.max(SHIFT_MIN, current + delta));
@@ -381,15 +412,15 @@ class MyThermaVDevice extends ThermaV {
       return;
     }
     if (!(mode in MODE_REGISTER)) throw new Error(`Unknown thermostat mode: ${mode}`);
-    if (this.getCapabilityValue('thermostat_mode.thermostat') === 'off') await this.writeHeatpump('setonoff', 1);
+    if (this.getCapabilityValue('thermostat_mode') === 'off') await this.writeHeatpump('setonoff', 1);
     await this.writeHeatpump('setthermostatmode', MODE_REGISTER[mode]);
   }
 
  /** Flow cards: behave exactly like the user choosing the mode in the Homey app. */
   async setThermostatModeFromFlow(mode: string) {
-    await this.triggerCapabilityListener('thermostat_mode.thermostat', mode);
+    await this.triggerCapabilityListener('thermostat_mode', mode);
     // triggerCapabilityListener only runs the listener, it does not update the displayed value
-    await this.setCapabilityValue('thermostat_mode.thermostat', mode);
+    await this.setCapabilityValue('thermostat_mode', mode);
   }
 
   async setSilentMode(enabled: boolean) {

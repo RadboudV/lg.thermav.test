@@ -366,7 +366,7 @@
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=thermav&capabilities=target_temperature.thermostat2"
+            "filter": "driver_id=thermav&capabilities=target_temperature.circuit2"
           },
           {
             "type": "number",
@@ -1553,9 +1553,9 @@
         "measure_power.generatedcold",
         "meter_power.totalgeneratedheat",
         "meter_power.totalgeneratedcold",
-        "thermostat_mode.thermostat",
-        "target_temperature.thermostat",
-        "measure_temperature.thermostat",
+        "thermostat_mode",
+        "target_temperature",
+        "measure_temperature",
         "measure_temperature.temppipein",
         "measure_temperature.tempsuction",
         "alarm_cold",
@@ -1599,9 +1599,6 @@
         },
         "target_temperature": {
           "decimals": 0,
-          "step": 1
-        },
-        "target_temperature.thermostat": {
           "step": 1
         },
         "measure_frequency.freqinverter": {
