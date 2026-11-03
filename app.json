@@ -606,6 +606,390 @@
             "filter": "driver_id=thermav"
           }
         ]
+      },
+      {
+        "id": "thermav_compressor_started",
+        "title": {
+          "en": "Compressor started",
+          "nl": "Compressor gestart"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_compressor_stopped",
+        "title": {
+          "en": "Compressor stopped",
+          "nl": "Compressor gestopt"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_waterpump_started",
+        "title": {
+          "en": "Water pump started",
+          "nl": "Waterpomp gestart"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_waterpump_stopped",
+        "title": {
+          "en": "Water pump stopped",
+          "nl": "Waterpomp gestopt"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_extwaterpump_started",
+        "title": {
+          "en": "External water pump started",
+          "nl": "Externe waterpomp gestart"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_extwaterpump_stopped",
+        "title": {
+          "en": "External water pump stopped",
+          "nl": "Externe waterpomp gestopt"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_mixpump_started",
+        "title": {
+          "en": "Mixing pump started",
+          "nl": "Mengpomp gestart"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_mixpump_stopped",
+        "title": {
+          "en": "Mixing pump stopped",
+          "nl": "Mengpomp gestopt"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_cooling_started",
+        "title": {
+          "en": "Cooling started",
+          "nl": "Koelen gestart"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_cooling_stopped",
+        "title": {
+          "en": "Cooling stopped",
+          "nl": "Koelen gestopt"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_waterflow_low",
+        "title": {
+          "en": "Water flow too low",
+          "nl": "Waterstroming te laag"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_waterflow_restored",
+        "title": {
+          "en": "Water flow restored",
+          "nl": "Waterstroming hersteld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_emergency_became_available",
+        "title": {
+          "en": "Emergency operation became available",
+          "nl": "Noodbedrijf beschikbaar geworden"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_emergency_became_unavailable",
+        "title": {
+          "en": "Emergency operation became unavailable",
+          "nl": "Noodbedrijf niet meer beschikbaar"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_backupheater_on",
+        "title": {
+          "en": "Backup heater turned on",
+          "nl": "Back-up verwarming ingeschakeld"
+        },
+        "tokens": [
+          {
+            "name": "step",
+            "type": "string",
+            "title": {
+              "en": "Step",
+              "nl": "Stap"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_backupheater_off",
+        "title": {
+          "en": "Backup heater turned off",
+          "nl": "Back-up verwarming uitgeschakeld"
+        },
+        "tokens": [
+          {
+            "name": "step",
+            "type": "string",
+            "title": {
+              "en": "Step",
+              "nl": "Stap"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_operationcycle_changed",
+        "title": {
+          "en": "Operating cycle changed",
+          "nl": "Bedrijfstoestand gewijzigd"
+        },
+        "tokens": [
+          {
+            "name": "cycle",
+            "type": "string",
+            "title": {
+              "en": "Operating cycle (standby / cooling / heating)",
+              "nl": "Bedrijfstoestand (standby / cooling / heating)"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_energystate_changed",
+        "title": {
+          "en": "Energy state input changed",
+          "nl": "Energiestatus-ingang gewijzigd"
+        },
+        "tokens": [
+          {
+            "name": "state",
+            "type": "number",
+            "title": {
+              "en": "Energy state (0-8)",
+              "nl": "Energiestatus (0-8)"
+            }
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "title": {
+              "en": "Energy state name",
+              "nl": "Naam energiestatus"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_dhw_turned_on",
+        "title": {
+          "en": "DHW turned on",
+          "nl": "DHW ingeschakeld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_dhw_turned_off",
+        "title": {
+          "en": "DHW turned off",
+          "nl": "DHW uitgeschakeld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_heatingcooling_turned_on",
+        "title": {
+          "en": "Heating/cooling turned on",
+          "nl": "Verwarmen/koelen ingeschakeld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_heatingcooling_turned_off",
+        "title": {
+          "en": "Heating/cooling turned off",
+          "nl": "Verwarmen/koelen uitgeschakeld"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_circuit2_became_active",
+        "title": {
+          "en": "Circuit 2 became active",
+          "nl": "Circuit 2 actief geworden"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
+      },
+      {
+        "id": "thermav_circuit2_became_inactive",
+        "title": {
+          "en": "Circuit 2 became inactive",
+          "nl": "Circuit 2 niet meer actief"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=thermav"
+          }
+        ]
       }
     ],
     "conditions": [

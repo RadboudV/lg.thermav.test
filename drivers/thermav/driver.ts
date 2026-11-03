@@ -2,13 +2,21 @@ import Homey from 'homey';
 
 module.exports = class MyThermaVDriver extends Homey.Driver {
 
-  // Device trigger cards, fired by the device (this.driver) when the heat pump reports a change
-  silentModeOnTrigger!: Homey.FlowCardTriggerDevice;
-  silentModeOffTrigger!: Homey.FlowCardTriggerDevice;
-  solarPumpStartedTrigger!: Homey.FlowCardTriggerDevice;
-  solarPumpStoppedTrigger!: Homey.FlowCardTriggerDevice;
-  faultDetectedTrigger!: Homey.FlowCardTriggerDevice;
-  faultClearedTrigger!: Homey.FlowCardTriggerDevice;
+  private triggerCards = new Map<string, Homey.FlowCardTriggerDevice>();
+
+  /**
+   * Fire a device trigger card (any trigger from driver.flow.compose.json). Called by the device
+   * (this.driver.fireTrigger) when the heat pump reports a change; the cards are looked up once and cached.
+   */
+  // async: a card id that does not exist rejects the promise (logged by the caller) instead of throwing inside the poll
+  async fireTrigger(id: string, device: Homey.Device, tokens: Record<string, string | number | boolean> = {}) {
+    let card = this.triggerCards.get(id);
+    if (!card) {
+      card = this.homey.flow.getDeviceTriggerCard(id);
+      this.triggerCards.set(id, card);
+    }
+    return card.trigger(device, tokens);
+  }
 
   /**
    * onInit is called when the driver is initialized.
@@ -23,13 +31,6 @@ module.exports = class MyThermaVDriver extends Homey.Driver {
     action('thermav_setsilentmodeon',    (d) => d.setSilentMode(true));
     action('thermav_setsilentmodeoff',   (d) => d.setSilentMode(false));
     action('thermav_setsilentmodeonoff', (d, args) => d.setSilentMode(args.enabled === 'true'));
-
-    this.silentModeOnTrigger  = this.homey.flow.getDeviceTriggerCard('thermav_silentmode_turned_on');
-    this.silentModeOffTrigger = this.homey.flow.getDeviceTriggerCard('thermav_silentmode_turned_off');
-    this.solarPumpStartedTrigger = this.homey.flow.getDeviceTriggerCard('thermav_solarpump_started');
-    this.solarPumpStoppedTrigger = this.homey.flow.getDeviceTriggerCard('thermav_solarpump_stopped');
-    this.faultDetectedTrigger = this.homey.flow.getDeviceTriggerCard('thermav_fault_detected');
-    this.faultClearedTrigger  = this.homey.flow.getDeviceTriggerCard('thermav_fault_cleared');
 
     // Condition ("and ..." column): true while the heat pump reports silent mode on (kept in this setting by the poll and by setSilentMode)
     this.homey.flow.getConditionCard('thermav_silentmodeenabled')

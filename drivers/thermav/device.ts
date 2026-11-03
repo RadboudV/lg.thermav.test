@@ -500,7 +500,7 @@ class MyThermaVDevice extends ThermaV {
     const deadline = Date.now() + WRITE_WAIT_MS;
     while (this.busy) {
       if (Date.now() > deadline) throw new Error('Heat pump is busy, try again');
-      await new Promise((resolve) => this.homey.setTimeout(resolve, 100));
+      await new Promise((r) => this.homey.setTimeout(r, 100));
     }
     this.busy = true;
     try {

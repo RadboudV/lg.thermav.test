@@ -30,6 +30,37 @@ const DHW_CAPABILITIES: Record<string, Record<string, unknown>> = {
 	'onoff.dhwemergency':            { title: title('DHW Emergency Operation Available', 'DHW noodbedrijf beschikbaar'), setable: false, uiComponent: 'sensor' },
 };
 
+// Flow trigger cards fired when a status changes between two polls. `key` is the register (see lib/registers.ts);
+// the state is "on" when active(raw) is true (default: raw === 1). The first poll after the app starts never fires.
+interface StatusTrigger { key: string; on: string; off: string; active?: (raw: number) => boolean; tokens?: Record<string, string | number> }
+const STATUS_TRIGGERS: StatusTrigger[] = [
+	{ key: 'statuscompressor',     on: 'thermav_compressor_started',   off: 'thermav_compressor_stopped' },
+	{ key: 'statuswaterpump',      on: 'thermav_waterpump_started',    off: 'thermav_waterpump_stopped' },
+	{ key: 'statusextwaterpup',    on: 'thermav_extwaterpump_started', off: 'thermav_extwaterpump_stopped' },
+	{ key: 'statusmixpump',        on: 'thermav_mixpump_started',      off: 'thermav_mixpump_stopped' },
+	{ key: 'statussolarpump',      on: 'thermav_solarpump_started',    off: 'thermav_solarpump_stopped' },
+	{ key: 'statussilentmode',     on: 'thermav_silentmode_turned_on', off: 'thermav_silentmode_turned_off' },
+	{ key: 'statuscooling',        on: 'thermav_cooling_started',      off: 'thermav_cooling_stopped' },
+	{ key: 'statuswaterflow',      on: 'thermav_waterflow_low',        off: 'thermav_waterflow_restored' },     // 1 = flow too low
+	{ key: 'statusemergency',      on: 'thermav_emergency_became_available', off: 'thermav_emergency_became_unavailable' },
+	{ key: 'statusbackupheater1',  on: 'thermav_backupheater_on',      off: 'thermav_backupheater_off', tokens: { step: '1' } },
+	{ key: 'statusbackupheater2',  on: 'thermav_backupheater_on',      off: 'thermav_backupheater_off', tokens: { step: '2' } },
+	{ key: 'enabledhw',            on: 'thermav_dhw_turned_on',        off: 'thermav_dhw_turned_off' },
+	{ key: 'enableheatingcooling', on: 'thermav_heatingcooling_turned_on', off: 'thermav_heatingcooling_turned_off' },
+	{ key: 'temptarget2',          on: 'thermav_circuit2_became_active', off: 'thermav_circuit2_became_inactive', active: (raw) => raw !== 0 },
+];
+
+// Trigger cards fired with the new value as token whenever a value changes between two polls.
+const OPERATING_CYCLES: Record<number, string> = { 0: 'standby', 1: 'cooling', 2: 'heating' };
+const ENERGY_STATES: Record<number, string> = {
+	0: 'Not used', 1: 'Forced off', 2: 'Normal operation', 3: 'On (recommended)', 4: 'On (command)',
+	5: 'On (command, step 2)', 6: 'On (recommended, step 1)', 7: 'Energy saving mode', 8: 'Super energy saving mode',
+};
+const VALUE_TRIGGERS: Array<{ key: string; card: string; tokens: (raw: number) => Record<string, string | number> }> = [
+	{ key: 'oduoperationcycle', card: 'thermav_operationcycle_changed', tokens: (raw) => ({ cycle: OPERATING_CYCLES[raw] ?? String(raw) }) },
+	{ key: 'energystateinput',  card: 'thermav_energystate_changed',    tokens: (raw) => ({ state: raw, name: ENERGY_STATES[raw] ?? 'Unknown' }) },
+];
+
 // Solar collector temperature (input 30007). Only meaningful while DHW is enabled and a sensor is connected:
 // an unconnected sensor reads a fixed raw value of 3000 (= 300.0 °C), then the capability is not shown.
 const SOLAR_COLLECTOR = 'measure_temperature.solarcollector';
@@ -44,8 +75,8 @@ export class ThermaV extends Homey.Device {
 	protected snapshot: Record<string, Measurement> | undefined;   // all registers of the last successful poll (for the condition cards)
 	protected snapshotTime = 0;                                    // when that poll happened (ms)
 	protected dhwEnabled: boolean | undefined;          // coil 1 'enabledhw' as last read from the pump (undefined until read)
-	protected lastSolarPump: boolean | undefined;       // last solar pump status reported by the pump (undefined until the first poll)
-	protected lastSilentMode: boolean | undefined;      // last silent mode status reported by the pump (undefined until the first poll)
+	private previousState: Record<string, boolean> = {};   // on/off state per STATUS_TRIGGERS entry at the previous poll
+	private previousRaw: Record<string, number> = {};      // raw value per VALUE_TRIGGERS entry at the previous poll
 	protected shiftValue: number | undefined;         // holding register 4 (raw, unsigned 16 bit)
 
 protected debug(...args: any[]): void {
@@ -154,15 +185,14 @@ protected debug(...args: any[]): void {
 
 		// Flow trigger cards (tokens: code like "CH23" and the description). Fired after the state is stored,
 		// so a poll that fails halfway does not fire the same trigger twice. Error -> other error fires both.
-		const driver = this.driver as any;
 		if (previous !== 0) {
-			driver.faultClearedTrigger.trigger(this, {
+			(this.driver as any).fireTrigger('thermav_fault_cleared', this, {
 				code: previous > 0 ? `CH${previous}` : '',
 				description: previous > 0 ? errorTitle(previous) : 'Unknown error',
 			}).catch(this.error);
 		}
 		if (code !== 0) {
-			driver.faultDetectedTrigger.trigger(this, { code: `CH${code}`, description: errorTitle(code) }).catch(this.error);
+			(this.driver as any).fireTrigger('thermav_fault_detected', this, { code: `CH${code}`, description: errorTitle(code) }).catch(this.error);
 		}
 	}
 
@@ -257,6 +287,32 @@ protected debug(...args: any[]): void {
 				}
 				await this.setCapabilityIfChanged(SOLAR_COLLECTOR, this.getScaledValue(result.tempsolarcollector));
 			}
+		}
+	}
+
+	/** Fire the flow trigger cards for everything that changed since the previous poll (see STATUS_TRIGGERS / VALUE_TRIGGERS). */
+	private fireTriggers(result: Record<string, Measurement>) {
+		const driver = this.driver as any;
+
+		for (const t of STATUS_TRIGGERS) {
+			const m = result[t.key];
+			if (!this.isValid(m)) continue;                       // register not read this poll: keep the previous state
+			const raw = Number(m.value);
+			const active = t.active ? t.active(raw) : raw === 1;
+			const previous = this.previousState[t.key];
+			this.previousState[t.key] = active;
+			if (previous === undefined || previous === active) continue;   // first poll, or nothing changed
+			driver.fireTrigger(active ? t.on : t.off, this, t.tokens ?? {}).catch(this.error);
+		}
+
+		for (const t of VALUE_TRIGGERS) {
+			const m = result[t.key];
+			if (!this.isValid(m)) continue;
+			const raw = Number(m.value);
+			const previous = this.previousRaw[t.key];
+			this.previousRaw[t.key] = raw;
+			if (previous === undefined || previous === raw) continue;
+			driver.fireTrigger(t.card, this, t.tokens(raw)).catch(this.error);
 		}
 	}
 
@@ -599,24 +655,6 @@ protected debug(...args: any[]): void {
 				settings_enable_silent_mode: statussilentmode
 			});
 			}
-
-			// Trigger cards: only on a real change, not on the first poll after the app starts
-			if (this.lastSilentMode !== undefined && this.lastSilentMode !== statussilentmode) {
-				const driver = this.driver as any;
-				const card = statussilentmode ? driver.silentModeOnTrigger : driver.silentModeOffTrigger;
-				card.trigger(this).catch(this.error);
-			}
-			this.lastSilentMode = statussilentmode;
-            }
-
-// Solar pump: trigger cards when it starts or stops running (not on the first poll after the app starts)
-            if (this.isValid(result.statussolarpump)) {
-				const solarPumpRunning = Number(result.statussolarpump.value) === 1;
-				if (this.lastSolarPump !== undefined && this.lastSolarPump !== solarPumpRunning) {
-					const driver = this.driver as any;
-					(solarPumpRunning ? driver.solarPumpStartedTrigger : driver.solarPumpStoppedTrigger).trigger(this).catch(this.error);
-				}
-				this.lastSolarPump = solarPumpRunning;
             }
 
 //Cooling Mode
@@ -639,6 +677,9 @@ protected debug(...args: any[]): void {
 
 // Circuit 2 (capabilities only while temptarget2 is not 0)
 			await this.processCircuit2(result);
+
+// Flow trigger cards for everything that changed since the previous poll
+			this.fireTriggers(result);
 
     }
 }
