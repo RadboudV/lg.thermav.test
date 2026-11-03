@@ -1,6 +1,6 @@
 # LG Therma V (Modbus)
 
-Homey app for LG Therma V R32 heat pumps, connected through a Modbus RTU-to-TCP converter.
+Homey app for LG Therma V R32 heat pumps, connected through a Waveshare Modbus RTU-to-TCP converter.
 
 ## Features
 - Reads input, holding, coil and discrete registers in blocks (a handful of requests per poll).
