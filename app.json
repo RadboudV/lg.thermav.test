@@ -1559,6 +1559,7 @@
         "measure_temperature.temppipein",
         "measure_temperature.tempsuction",
         "alarm_cold",
+        "defrosts_today",
         "alarm_generic"
       ],
       "capabilitiesOptions": {
@@ -1654,6 +1655,9 @@
             "en": "Defrosting",
             "nl": "Ontdooien"
           }
+        },
+        "defrosts_today": {
+          "uiComponent": null
         }
       },
       "energy": {
@@ -1839,6 +1843,18 @@
     }
   ],
   "capabilities": {
+    "defrosts_today": {
+      "type": "number",
+      "title": {
+        "en": "Defrosts today",
+        "nl": "Ontdooicycli vandaag"
+      },
+      "getable": true,
+      "setable": false,
+      "decimals": 0,
+      "uiComponent": null,
+      "insights": true
+    },
     "thermav_error": {
       "type": "string",
       "title": {
