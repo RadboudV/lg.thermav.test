@@ -337,7 +337,7 @@ protected debug(...args: any[]): void {
 				}
                 //var temptarget1 = Number(result['temptarget1'].value) * (Math.pow(10, Number(result['temptarget1'].scale)));
 				const temptarget1 = this.getScaledValue(result['temptarget1']);
-				const current = this.getCapabilityValue('measure_temperature.tempwaterinlet');
+				const current = this.getCapabilityValue('target_temperature');
 				if (current !== temptarget1) {
 					await this.setCapabilityValue('target_temperature', Math.round(temptarget1));
 				}

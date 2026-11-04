@@ -495,16 +495,16 @@ class MyThermaVDevice extends ThermaV {
         producedcold = Math.max(0, -energyOutput); // Store the cooling energy produced as positive value
       }
 
-      this.setCapabilityValue('measure_power.generatedheat', producedheat);
-      this.setCapabilityValue('measure_power.generatedcold', producedcold);
+      await this.setCapabilityValue('measure_power.generatedheat', producedheat).catch(this.error); ;
+      await this.setCapabilityValue('measure_power.generatedcold', producedcold).catch(this.error); ;
 
 	  const currentpollingInterval = this.getSettings().pollinginterval;
 	  
 	  var totalproducedheat = ((this.getCapabilityValue('meter_power.totalgeneratedheat')) + (((producedheat * currentpollingInterval)/3600)/1000));
-	  this.setCapabilityValue('meter_power.totalgeneratedheat', totalproducedheat); 
+	  await this.setCapabilityValue('meter_power.totalgeneratedheat', totalproducedheat).catch(this.error); ; 
 
 	  var totalproducedcold = ((this.getCapabilityValue('meter_power.totalgeneratedcold')) + (((producedcold * currentpollingInterval)/3600)/1000));
-	  this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold); 
+	  await this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold).catch(this.error); 
 
 	  
     } catch (err) {
