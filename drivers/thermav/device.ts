@@ -238,6 +238,7 @@ class MyThermaVDevice extends ThermaV {
 // DHW target temperature (the capability only exists while DHW is enabled)
     this.registerCapabilityListener('target_temperature.dhw', (value: number) => this.setDhwTargetTemperature(value));
 
+	await this.startDefrostCounter();
 	this.startPolling(interval);
     this.pollHeatpump();   // first poll right away
 	
@@ -333,6 +334,7 @@ class MyThermaVDevice extends ThermaV {
   async onDeleted() {
     this.debug('ThermaV device has been deleted');
     this.stopPolling();
+    this.stopDefrostCounter();
 	this.dropConnection();
   }
 //********************************************************
@@ -344,6 +346,7 @@ class MyThermaVDevice extends ThermaV {
   async onUninit() {
     this.debug('ThermaV device has been Un initialized.');
     this.stopPolling();
+    this.stopDefrostCounter();
 	this.dropConnection();
   }
 //********************************************************

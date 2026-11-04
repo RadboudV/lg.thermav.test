@@ -77,6 +77,8 @@ export class ThermaV extends Homey.Device {
 	protected dhwEnabled: boolean | undefined;          // coil 1 'enabledhw' as last read from the pump (undefined until read)
 	private previousState: Record<string, boolean> = {};   // on/off state per STATUS_TRIGGERS entry at the previous poll
 	private previousRaw: Record<string, number> = {};      // raw value per VALUE_TRIGGERS entry at the previous poll
+	private defrostActive: boolean | null = null;         // defrost status at the previous poll (null = unknown, e.g. first poll)
+	private defrostResetTimer?: NodeJS.Timeout;           // fires at local midnight
 	protected shiftValue: number | undefined;         // holding register 4 (raw, unsigned 16 bit)
 
 protected debug(...args: any[]): void {
@@ -314,6 +316,73 @@ protected debug(...args: any[]): void {
 			if (previous === undefined || previous === raw) continue;
 			driver.fireTrigger(t.card, this, t.tokens(raw)).catch(this.error);
 		}
+	}
+
+
+	// ---- defrost counter ---------------------------------------------------------------------
+
+	/** Date and time of day in the timezone configured on the Homey (one place for all local-time logic). */
+	private localTime(date = new Date()) {
+		const parts = new Intl.DateTimeFormat('en-GB', {
+			timeZone: this.homey.clock.getTimezone(),
+			year: 'numeric', month: '2-digit', day: '2-digit',
+			hour: 'numeric', minute: 'numeric', second: 'numeric',
+			hourCycle: 'h23',   // hours 0-23 (never 24)
+		}).formatToParts(date);
+		const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
+		return {
+			day: `${get('year')}-${get('month')}-${get('day')}`,   // YYYY-MM-DD, used as the key for "today"
+			secondsOfDay: Number(get('hour')) * 3600 + Number(get('minute')) * 60 + Number(get('second')),
+		};
+	}
+
+	/** Milliseconds until the next local midnight (the poll-time day check covers DST edge cases). */
+	private msUntilMidnight(): number {
+		return Math.max(1000, (86400 - this.localTime().secondsOfDay) * 1000 + 500);
+	}
+
+	/** Starts the midnight timer and makes sure the capability exists and holds today's count. Call from onInit. */
+	protected async startDefrostCounter() {
+		if (!this.hasCapability('defrosts_today')) await this.addCapability('defrosts_today');
+		await this.rolloverDefrostDay();
+		this.scheduleDefrostReset();
+	}
+
+	protected stopDefrostCounter() {
+		if (this.defrostResetTimer) this.homey.clearTimeout(this.defrostResetTimer);
+		this.defrostResetTimer = undefined;
+	}
+
+	private scheduleDefrostReset() {
+		this.stopDefrostCounter();
+		this.defrostResetTimer = this.homey.setTimeout(() => {
+			this.rolloverDefrostDay().catch(this.error).finally(() => this.scheduleDefrostReset());
+		}, this.msUntilMidnight());
+	}
+
+	/** Resets the counter when the stored day is not today; also publishes the stored count after a restart. */
+	private async rolloverDefrostDay() {
+		const today = this.localTime().day;
+		if (this.getStoreValue('defrostDay') !== today) {
+			await this.setStoreValue('defrostDay', today);
+			await this.setStoreValue('defrostCount', 0);
+		}
+		const count = Number(this.getStoreValue('defrostCount')) || 0;
+		if (this.getCapabilityValue('defrosts_today') !== count) {
+			await this.setCapabilityValue('defrosts_today', count).catch(this.error);
+		}
+	}
+
+	/** Called every poll with the current defrost status; counts a rising edge (not defrosting -> defrosting). */
+	private async countDefrost(defrosting: boolean) {
+		await this.rolloverDefrostDay();
+		if (this.defrostActive === false && defrosting) {
+			const count = (Number(this.getStoreValue('defrostCount')) || 0) + 1;
+			await this.setStoreValue('defrostCount', count);
+			await this.setCapabilityValue('defrosts_today', count).catch(this.error);
+			this.log('Defrost started, defrosts today:', count);
+		}
+		this.defrostActive = defrosting;
 	}
 
     async processResult(result: Record<string, Measurement>) {
@@ -625,6 +694,9 @@ protected debug(...args: any[]): void {
 					await this.setCapabilityValue('alarm_cold', Number(result.statusdefrost.value) === 1);
 				}
             }
+
+// Defrosts today: count every start of a defrost cycle, reset at local midnight
+			if (this.isValid(result.statusdefrost)) await this.countDefrost(Number(result.statusdefrost.value) === 1);
 
 // Error Code
 /*
