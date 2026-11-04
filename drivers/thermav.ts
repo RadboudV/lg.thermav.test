@@ -321,19 +321,24 @@ protected debug(...args: any[]): void {
 
 	// ---- defrost counter ---------------------------------------------------------------------
 
-	/** Local date (YYYY-MM-DD) in the timezone configured on the Homey. */
-	private localDay(date = new Date()): string {
-		return date.toLocaleDateString('sv-SE', { timeZone: this.homey.clock.getTimezone() });
+	/** Date and time of day in the timezone configured on the Homey (one place for all local-time logic). */
+	private localTime(date = new Date()) {
+		const parts = new Intl.DateTimeFormat('en-GB', {
+			timeZone: this.homey.clock.getTimezone(),
+			year: 'numeric', month: '2-digit', day: '2-digit',
+			hour: 'numeric', minute: 'numeric', second: 'numeric',
+			hourCycle: 'h23',   // hours 0-23 (never 24)
+		}).formatToParts(date);
+		const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
+		return {
+			day: `${get('year')}-${get('month')}-${get('day')}`,   // YYYY-MM-DD, used as the key for "today"
+			secondsOfDay: Number(get('hour')) * 3600 + Number(get('minute')) * 60 + Number(get('second')),
+		};
 	}
 
 	/** Milliseconds until the next local midnight (the poll-time day check covers DST edge cases). */
 	private msUntilMidnight(): number {
-		const parts = new Intl.DateTimeFormat('en-GB', {
-			timeZone: this.homey.clock.getTimezone(), hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23',
-		}).formatToParts(new Date());
-		const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
-		const secondsPassed = get('hour') * 3600 + get('minute') * 60 + get('second');
-		return Math.max(1000, (86400 - secondsPassed) * 1000 + 500);
+		return Math.max(1000, (86400 - this.localTime().secondsOfDay) * 1000 + 500);
 	}
 
 	/** Starts the midnight timer and makes sure the capability exists and holds today's count. Call from onInit. */
@@ -357,7 +362,7 @@ protected debug(...args: any[]): void {
 
 	/** Resets the counter when the stored day is not today; also publishes the stored count after a restart. */
 	private async rolloverDefrostDay() {
-		const today = this.localDay();
+		const today = this.localTime().day;
 		if (this.getStoreValue('defrostDay') !== today) {
 			await this.setStoreValue('defrostDay', today);
 			await this.setStoreValue('defrostCount', 0);
