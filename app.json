@@ -1777,8 +1777,8 @@
                 "nl": "IP adres"
               },
               "hint": {
-                "en": "Enter the IP Address of the Modbus RTU converter",
-                "nl": "Voer het IP adres van de modbus RTU converter in."
+                "en": "Enter the IP Address of the Modbus RTU converter. After changing the IP address, port or Modbus ID the heat pump is detected again.",
+                "nl": "Voer het IP adres van de modbus RTU converter in. Na het wijzigen van IP adres, poort of Modbus ID wordt de warmtepomp opnieuw gedetecteerd."
               }
             },
             {
@@ -1790,8 +1790,8 @@
                 "en": "Port"
               },
               "hint": {
-                "en": "Mostly common port is 502 for modbus communication.",
-                "nl": "Het meest gebruikelijke is poort 502 voor Modbus communicatie."
+                "en": "Mostly common port is 502 for modbus communication. After changing the IP address, port or Modbus ID the heat pump is detected again.",
+                "nl": "Het meest gebruikelijke is poort 502 voor Modbus communicatie. Na het wijzigen van IP adres, poort of Modbus ID wordt de warmtepomp opnieuw gedetecteerd."
               }
             },
             {
@@ -1807,8 +1807,8 @@
                 "en": "Modbus ID"
               },
               "hint": {
-                "en": "Should match the modbus ID configured in the controller.",
-                "nl": "Voer hetzelfde ID in als in de controller."
+                "en": "Should match the modbus ID configured in the controller. After changing the IP address, port or Modbus ID the heat pump is detected again.",
+                "nl": "Voer hetzelfde ID in als in de controller. Na het wijzigen van IP adres, poort of Modbus ID wordt de warmtepomp opnieuw gedetecteerd."
               }
             },
             {
