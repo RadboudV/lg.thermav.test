@@ -16,6 +16,7 @@ import { ThermaV } from '../thermav';
 // Set default polling interval (seconds) >= time needed to read all modbus registers!
 const DEFAULT_POLLING_INTERVAL = 30;
 // After a write, ignore register values from polls for this long (heat pump needs time to apply the change)
+const MAX_METER_GAP_S = 300;          // longest gap (s) that is still counted in the energy meters
 const WRITE_SETTLE_MS = 5000;
 // Mark the device unavailable after this many failed polls/writes in a row
 const UNAVAILABLE_AFTER_FAILURES = 3;
@@ -67,6 +68,7 @@ class MyThermaVDevice extends ThermaV {
   private connecting: Promise<void> | null = null;
   private busy = false;            // one Modbus transaction sequence at a time (poll OR write)
   private failures = 0;
+  private lastMeterTime = 0;       // timestamp (ms) of the previous meter update (0 = none yet)
   private lastWrite = 0;           // timestamp (ms) of the last successful write to the heat pump
   private productDetected = false;   // product registers are read once (until that succeeds), not on every poll
   protected isAwhp: boolean | null = null;   // null = not detected yet
@@ -193,14 +195,19 @@ class MyThermaVDevice extends ThermaV {
   private async migrateCapabilities() {
     for (const [oldId, newId, options] of RENAMED_CAPABILITIES) {
       if (!this.hasCapability(oldId)) continue;
-      if (!this.hasCapability(newId)) {
-        const value = this.getCapabilityValue(oldId);
-        await this.addCapability(newId);
-        if (options) await this.setCapabilityOptions(newId, options);
-        if (value !== null && value !== undefined) await this.setCapabilityValue(newId, value).catch(this.error);
+      try {
+        if (!this.hasCapability(newId)) {
+          const value = this.getCapabilityValue(oldId);
+          await this.addCapability(newId);
+          if (options) await this.setCapabilityOptions(newId, options);
+          if (value !== null && value !== undefined) await this.setCapabilityValue(newId, value).catch(this.error);
+        }
+        await this.removeCapability(oldId);
+        this.log('Capability renamed:', oldId, '->', newId);
+      } catch (err) {
+        // one failing rename must not stop onInit; it is retried on the next start
+        this.error('Capability rename failed:', oldId, '->', newId, err);
       }
-      await this.removeCapability(oldId);
-      this.log('Capability renamed:', oldId, '->', newId);
     }
     for (const oldId of REMOVED_CAPABILITIES) {
       if (this.hasCapability(oldId)) await this.removeCapability(oldId).catch(this.error);
@@ -280,6 +287,9 @@ class MyThermaVDevice extends ThermaV {
 	  this.dropConnection();
 	  this.failures = 0;
 	  this.available = null;
+	  this.productDetected = false;   // another heat pump may be behind the new address: detect the product again
+	  this.isAwhp = null;
+	  this.productInfo = null;
 	  // onSettings runs before the new values are stored, so poll a moment later
 	  this.homey.setTimeout(() => this.pollHeatpump(), 1000);
     }
@@ -495,16 +505,20 @@ class MyThermaVDevice extends ThermaV {
         producedcold = Math.max(0, -energyOutput); // Store the cooling energy produced as positive value
       }
 
-      await this.setCapabilityValue('measure_power.generatedheat', producedheat).catch(this.error); ;
-      await this.setCapabilityValue('measure_power.generatedcold', producedcold).catch(this.error); ;
+      await this.setCapabilityValue('measure_power.generatedheat', producedheat).catch(this.error);
+      await this.setCapabilityValue('measure_power.generatedcold', producedcold).catch(this.error);
 
-	  const currentpollingInterval = this.getSettings().pollinginterval;
-	  
-	  var totalproducedheat = ((this.getCapabilityValue('meter_power.totalgeneratedheat')) + (((producedheat * currentpollingInterval)/3600)/1000));
-	  await this.setCapabilityValue('meter_power.totalgeneratedheat', totalproducedheat).catch(this.error); ; 
+	  // Meters: integrate the output over the real time since the previous poll (not the configured interval),
+	  // capped so a long gap (app restart, connection loss) does not add a large bogus amount.
+	  const now = Date.now();
+	  const elapsedSeconds = this.lastMeterTime ? Math.min((now - this.lastMeterTime) / 1000, MAX_METER_GAP_S) : 0;
+	  this.lastMeterTime = now;
 
-	  var totalproducedcold = ((this.getCapabilityValue('meter_power.totalgeneratedcold')) + (((producedcold * currentpollingInterval)/3600)/1000));
-	  await this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold).catch(this.error); 
+	  const totalproducedheat = (Number(this.getCapabilityValue('meter_power.totalgeneratedheat')) || 0) + ((producedheat * elapsedSeconds) / 3600) / 1000;
+	  await this.setCapabilityValue('meter_power.totalgeneratedheat', totalproducedheat).catch(this.error);
+
+	  const totalproducedcold = (Number(this.getCapabilityValue('meter_power.totalgeneratedcold')) || 0) + ((producedcold * elapsedSeconds) / 3600) / 1000;
+	  await this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold).catch(this.error);
 
 	  
     } catch (err) {
