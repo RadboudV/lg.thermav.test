@@ -59,8 +59,7 @@ type WriteType = 'settemperature' | 'settemperatureshift' | 'setthermostatmode' 
 
 //module.exports = class thermavDevice extends Homey.Device {
 class MyThermaVDevice extends ThermaV {
-	//timer!: NodeJS.Timer;
-  private pollTimer?: NodeJS.Timer;
+  private pollTimer?: NodeJS.Timeout;   // type returned by homey.setInterval (NodeJS.Timer is deprecated in newer @types/node)
 
   private socket: net.Socket | null = null;
   private client: InstanceType<typeof Modbus.client.TCP> | null = null;
