@@ -20,6 +20,7 @@
 	"measure_temperature.temppipein",
 	"measure_temperature.tempsuction",
 	"alarm_cold",
+	"defrosts_today",
 	"alarm_generic"
   ],
   "capabilitiesOptions": {
@@ -115,7 +116,10 @@
         "en": "Defrosting",
 		"nl": "Ontdooien"
       }
-	}  
+	},
+	  "defrosts_today": {
+	  "uiComponent": null
+	}
   },
   "energy": {
 	  "usageConstant": 0
