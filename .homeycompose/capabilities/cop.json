@@ -1,0 +1,12 @@
+{
+  "type": "number",
+  "title": {
+    "en": "COP",
+    "nl": "COP"
+  },
+  "getable": true,
+  "setable": false,
+  "decimals": 1,
+  "uiComponent": "sensor",
+  "insights": true
+}
