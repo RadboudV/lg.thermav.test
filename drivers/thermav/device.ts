@@ -454,7 +454,7 @@ class MyThermaVDevice extends ThermaV {
     const address = String(this.getSetting('energymeter_address') ?? '').trim();
 
     if (!address) {   // meter disabled: remove the capabilities again
-      for (const id of ['measure_power.electric', 'cop']) {
+      for (const id of ['measure_power.electric', 'measure_cop']) {
         if (this.hasCapability(id)) await this.removeCapability(id).catch(this.error);
       }
       return;
@@ -467,21 +467,21 @@ class MyThermaVDevice extends ThermaV {
         decimals: 0,
       });
     }
-    if (!this.hasCapability('cop')) await this.addCapability('cop');
+    if (!this.hasCapability('measure_cop')) await this.addCapability('measure_cop');
 
     try {
       const power = await readActivePower(address);
       await this.setCapabilityValue('measure_power.electric', power).catch(this.error);
 
       // a meter that reports export (negative) or 0 W cannot give a meaningful COP
-      const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 10) / 10 : 0;
-      await this.setCapabilityValue('cop', cop).catch(this.error);
+      const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 100) / 100 : 0;
+      await this.setCapabilityValue('measure_cop', cop).catch(this.error);
       this.meterFailing = false;
     } catch (err) {
       if (!this.meterFailing) this.error('Energy meter not available:', err);   // log once per outage
       this.meterFailing = true;
       await this.setCapabilityValue('measure_power.electric', null).catch(this.error);
-      await this.setCapabilityValue('cop', null).catch(this.error);
+      await this.setCapabilityValue('measure_cop', null).catch(this.error);
     }
   }
 
