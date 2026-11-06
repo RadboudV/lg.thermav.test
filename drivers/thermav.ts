@@ -429,7 +429,10 @@ protected debug(...args: any[]): void {
 					await this.addCapability('measure_temperature.tempwaterinlet');
 				}
                 // var tempwaterinlet = Number(result['tempwaterinlet'].value) * (Math.pow(10, Number(result['tempwaterinlet'].scale)));
-				const tempwaterinlet = this.getScaledValue(result['tempwaterinlet']);
+				const tempwaterinlet = Number((Math.round((Number(result['tempwaterinlet'].value) * (Math.pow(10, Number(result['tempwaterinlet'].scale))))*3)/3).toFixed(2));
+				// const tempwaterinlet = (((Round(Number(result['tempwaterinlet'].value) * (Math.pow(10, Number(result['tempwaterinlet'].scale)))),0)*3)/3;
+				// const tempwaterinlet =  Math.round(Number(result['tempwaterinlet'].value) * Math.pow(10, Number(result['tempwaterinlet'].scale)) * 3, 0 ) / 3);
+				// const tempwaterinlet = this.getScaledValue(result['tempwaterinlet']);
 				const current = this.getCapabilityValue('measure_temperature.tempwaterinlet');
 				if (current !== tempwaterinlet) {
 					await this.setCapabilityValue('measure_temperature.tempwaterinlet', tempwaterinlet);
@@ -441,7 +444,9 @@ protected debug(...args: any[]): void {
 					await this.addCapability('measure_temperature.tempwateroutlet');
 				}
                 //var tempwateroutlet = Number(result['tempwateroutlet'].value) * (Math.pow(10, Number(result['tempwateroutlet'].scale)));
-				const tempwateroutlet = this.getScaledValue(result['tempwateroutlet']);
+				//const tempwateroutlet =  Math.round(Number(result['tempwateroutlet'].value) * Math.pow(10, Number(result['tempwateroutlet'].scale)) * 3, 0 ) / 3;
+				const tempwateroutlet = Number((Math.round((Number(result['tempwateroutlet'].value) * (Math.pow(10, Number(result['tempwateroutlet'].scale))))*3)/3).toFixed(2));
+				//const tempwateroutlet = this.getScaledValue(result['tempwateroutlet']);
 				const current = this.getCapabilityValue('measure_temperature.tempwateroutlet');
 				if (current !== tempwateroutlet) {
 					await this.setCapabilityValue('measure_temperature.tempwateroutlet', tempwateroutlet);

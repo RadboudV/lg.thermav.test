@@ -1568,14 +1568,14 @@
             "en": "Water Outlet Temperature",
             "nl": "Aanvoer temperatuur"
           },
-          "decimals": 1
+          "decimals": 2
         },
         "measure_temperature.tempwaterinlet": {
           "title": {
             "en": "Water Inlet Temperature",
             "nl": "Retour temperatuur"
           },
-          "decimals": 1
+          "decimals": 2
         },
         "measure_temperature.tempoutdoor": {
           "title": {
