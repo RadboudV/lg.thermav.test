@@ -10,6 +10,7 @@ import {
 } from '../../lib/modbus';
 import { holdingregisters, inputregisters, coilregisters, discreteregisters } from '../../lib/registers';
 
+import { readActivePower } from '../../lib/energymeter';
 import { ThermaV } from '../thermav';
 
 
@@ -67,6 +68,7 @@ class MyThermaVDevice extends ThermaV {
   private connecting: Promise<void> | null = null;
   private busy = false;            // one Modbus transaction sequence at a time (poll OR write)
   private failures = 0;
+  private meterFailing = false;      // energy meter unreachable at the previous poll (log once per outage)
   private lastMeterTime = 0;       // timestamp (ms) of the previous meter update (0 = none yet)
   private lastWrite = 0;           // timestamp (ms) of the last successful write to the heat pump
   private productDetected = false;   // product registers are read once (until that succeeds), not on every poll
@@ -443,6 +445,48 @@ class MyThermaVDevice extends ThermaV {
 
 //**************************************************************************************
   /**
+   * Optional energy meter: electric power of the heat pump and the COP.
+   * COP = produced heat (or cold) / electric power, only while the compressor runs, otherwise 0.
+   * A meter that cannot be read never fails the heat pump poll.
+   */
+//**************************************************************************************
+  private async processEnergyMeter(compressorOn: boolean, producedPower: number) {
+    const address = String(this.getSetting('energymeter_address') ?? '').trim();
+
+    if (!address) {   // meter disabled: remove the capabilities again
+      for (const id of ['measure_power.electric', 'measure_cop']) {
+        if (this.hasCapability(id)) await this.removeCapability(id).catch(this.error);
+      }
+      return;
+    }
+
+    if (!this.hasCapability('measure_power.electric')) {
+      await this.addCapability('measure_power.electric');
+      await this.setCapabilityOptions('measure_power.electric', {
+        title: { en: 'Electric power', nl: 'Elektrisch vermogen' },
+        decimals: 0,
+      });
+    }
+    if (!this.hasCapability('measure_cop')) await this.addCapability('measure_cop');
+
+    try {
+      const power = await readActivePower(address);
+      await this.setCapabilityValue('measure_power.electric', power).catch(this.error);
+
+      // a meter that reports export (negative) or 0 W cannot give a meaningful COP
+      const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 100) / 100 : 0;
+      await this.setCapabilityValue('measure_cop', cop).catch(this.error);
+      this.meterFailing = false;
+    } catch (err) {
+      if (!this.meterFailing) this.error('Energy meter not available:', err);   // log once per outage
+      this.meterFailing = true;
+      await this.setCapabilityValue('measure_power.electric', null).catch(this.error);
+      await this.setCapabilityValue('measure_cop', null).catch(this.error);
+    }
+  }
+
+//**************************************************************************************
+  /**
    * Poll the heatpump
    */
 //**************************************************************************************
@@ -521,6 +565,8 @@ class MyThermaVDevice extends ThermaV {
 
 	  const totalproducedcold = (Number(this.getCapabilityValue('meter_power.totalgeneratedcold')) || 0) + ((producedcold * elapsedSeconds) / 3600) / 1000;
 	  await this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold).catch(this.error);
+
+	  await this.processEnergyMeter(compressorOn, producedheat + producedcold);
 
 	  
     } catch (err) {
