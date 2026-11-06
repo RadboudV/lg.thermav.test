@@ -1838,6 +1838,28 @@
               "value": "unknown"
             }
           ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Energy meter (optional)",
+            "nl": "Energiemeter (optioneel)"
+          },
+          "children": [
+            {
+              "id": "energymeter_address",
+              "type": "text",
+              "value": "",
+              "label": {
+                "en": "Energy meter IP address",
+                "nl": "IP adres energiemeter"
+              },
+              "hint": {
+                "en": "IP address of the energy meter that measures the electric power of the heat pump (reads http://<address>/api/v1/data, field active_power_w). Leave empty to disable. When set, the capabilities Electric power and COP are added; when emptied they are removed. The COP is only calculated while the compressor is running, otherwise it is 0. Note: the meter should measure the heat pump only; a whole-house meter gives a wrong COP.",
+                "nl": "IP adres van de energiemeter die het elektrisch vermogen van de warmtepomp meet (leest http://<adres>/api/v1/data, veld active_power_w). Leeg laten om uit te schakelen. Als dit is ingevuld worden de capabilities Elektrisch vermogen en COP toegevoegd; bij leegmaken worden ze verwijderd. De COP wordt alleen berekend als de compressor draait, anders is deze 0. Let op: de meter moet alleen de warmtepomp meten; een meter voor het hele huis geeft een onjuiste COP."
+              }
+            }
+          ]
         }
       ]
     }
@@ -1855,15 +1877,17 @@
       "uiComponent": null,
       "insights": true
     },
-    "thermav_error": {
-      "type": "string",
+    "measure_cop": {
+      "type": "number",
       "title": {
-        "en": "Current error",
-        "nl": "Huidige storing"
+        "en": "COP",
+        "nl": "COP"
       },
       "getable": true,
       "setable": false,
-      "uiComponent": "sensor"
+      "decimals": 2,
+      "uiComponent": "sensor",
+      "insights": true
     }
   }
 }
