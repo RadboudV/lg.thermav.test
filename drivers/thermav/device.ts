@@ -11,7 +11,8 @@ import {
 import { holdingregisters, inputregisters, coilregisters, discreteregisters } from '../../lib/registers';
 
 import { readActivePower } from '../../lib/energymeter';
-//import { snapToThirds } from '../../lib/temperature';
+import { MIN_FLOW_RATE } from '../../lib/sensors';
+import { snapToThirds } from '../../lib/temperature';
 import { ThermaV } from '../thermav';
 
 
@@ -549,7 +550,7 @@ class MyThermaVDevice extends ThermaV {
 //        producedcold = Math.min(0, heatOutput);
 //      }
 
-      if (flowRate > 5 && compressorOn
+      if (flowRate > MIN_FLOW_RATE && compressorOn
           && Number.isFinite(flowRate) && Number.isFinite(tempOut) && Number.isFinite(tempIn)) {
         const energyOutput = Math.round(flowRate * 60 * (tempOut - tempIn) * 1.16227);
         producedheat = Math.max(0, energyOutput);
