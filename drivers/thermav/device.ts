@@ -223,6 +223,7 @@ class MyThermaVDevice extends ThermaV {
     this.debug('ThermaV device has been initialized:', this.getName(), 'Device name id:', this.getData().id);
 
     await this.migrateCapabilities();
+    await this.applyAlarmTitles();   // fixed timeline texts; also resets texts written by earlier versions
  
 	let interval = Number(this.getSetting('pollinginterval'));
 	

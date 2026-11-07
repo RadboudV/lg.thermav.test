@@ -17,6 +17,7 @@
     "climate"
   ],
   "permissions": [
+    "homey:manager:notifications"
   ],
   "images": {
     "small": "/assets/images/small.png",

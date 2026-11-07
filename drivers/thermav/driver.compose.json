@@ -21,7 +21,8 @@
 	"measure_temperature.tempsuction",
 	"alarm_cold",
 	"defrosts_today",
-	"alarm_generic"
+	"alarm_generic",
+	"thermav_error"
   ],
   "capabilitiesOptions": {
       "measure_temperature.tempwateroutlet": {
@@ -115,6 +116,14 @@
       "title": {
         "en": "Error",
 		"nl": "Storing"
+      },
+      "insightsTitleTrue": {
+        "en": "Error active",
+		"nl": "Storing actief"
+      },
+      "insightsTitleFalse": {
+        "en": "Error cleared",
+		"nl": "Storing opgelost"
       }
 	},
 	  "alarm_cold": {
