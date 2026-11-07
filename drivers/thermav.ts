@@ -168,10 +168,17 @@ protected debug(...args: any[]): void {
 			return;
 		}
 
-		const setTitles = (opts: Record<string, unknown>) => this.setCapabilityOptions('alarm_generic', {
-			...(this.getCapabilityOptions('alarm_generic') ?? {}),
-			...opts,
-		});
+		// The timeline texts are cosmetic: whatever goes wrong here must never stop the alarm flag and the triggers.
+		// (getCapabilityOptions throws "Invalid Capability" for a capability without options in driver.compose.json.)
+		const setTitles = async (opts: Record<string, unknown>) => {
+			try {
+				let current: Record<string, unknown> = {};
+				try { current = this.getCapabilityOptions('alarm_generic') ?? {}; } catch { /* no options stored yet */ }
+				await this.setCapabilityOptions('alarm_generic', { ...current, ...opts });
+			} catch (err) {
+				this.error('Could not set the alarm_generic timeline texts:', err);
+			}
+		};
 
 		if (previous !== 0) {
 			const cleared = previous > 0 ? `Error ${previous} cleared: ${errorTitle(previous)}` : 'Error cleared';
