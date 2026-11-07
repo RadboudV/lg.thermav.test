@@ -1560,7 +1560,8 @@
         "measure_temperature.tempsuction",
         "alarm_cold",
         "defrosts_today",
-        "alarm_generic"
+        "alarm_generic",
+        "thermav_error"
       ],
       "capabilitiesOptions": {
         "measure_temperature.tempwateroutlet": {
@@ -1649,6 +1650,20 @@
             "nl": "Totale koudeopbrengst"
           },
           "uiComponent": null
+        },
+        "alarm_generic": {
+          "title": {
+            "en": "Error",
+            "nl": "Storing"
+          },
+          "insightsTitleTrue": {
+            "en": "Error active",
+            "nl": "Storing actief"
+          },
+          "insightsTitleFalse": {
+            "en": "Error cleared",
+            "nl": "Storing opgelost"
+          }
         },
         "alarm_cold": {
           "title": {
@@ -1886,6 +1901,17 @@
       "getable": true,
       "setable": false,
       "decimals": 2,
+      "uiComponent": "sensor",
+      "insights": true
+    },
+    "thermav_error": {
+      "type": "string",
+      "title": {
+        "en": "Current error",
+        "nl": "Huidige storing"
+      },
+      "getable": true,
+      "setable": false,
       "uiComponent": "sensor",
       "insights": true
     }

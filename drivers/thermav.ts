@@ -6,6 +6,8 @@ import { snapToThirds } from '../lib/temperature';
 
 const OPERATING_MODES: Record<string, string> = { '0': 'cool', '1': 'cool', '2': 'off', '3': 'auto', '4': 'heat' };
 
+const NO_ERROR_TEXT = 'No error';
+
 const title = (en: string, nl: string = en) => ({ en, nl });
 
 // Circuit 2 (second heating/cooling circuit). There is no "installed" register; per the user's finding circuit 2 is in use
@@ -152,45 +154,63 @@ protected debug(...args: any[]): void {
 // -----------------------------------------------------------------------------------------
 
 	/**
-	 * Keep alarm_generic as the error flag and make the device timeline say which error it is.
-	 * The timeline text of a boolean capability comes from its insightsTitleTrue / insightsTitleFalse options,
-	 * so these are set right before the flag changes. A change from one error to another is shown as
-	 * "cleared" followed by the new error.
+	 * Homey resolves the timeline text of a boolean capability (insightsTitleTrue/False) when the timeline is shown,
+	 * not when the entry is written: changing the texts per error rewrites every earlier entry. So alarm_generic only
+	 * gets FIXED texts (applied at startup), and the code with its description is written where it is stored with the entry:
+	 *  - the text capability 'thermav_error' (insights log: value changes are kept with their value)
+	 *  - a notification per error / clear (stored text, shown in the Homey timeline/notifications under this app)
+	 *  - the fault flow triggers (tokens code + description)
 	 */
+	protected async applyAlarmTitles() {
+		try {
+			await this.setCapabilityOptions('alarm_generic', {
+				title: title('Error', 'Storing'),
+				insightsTitleTrue: title('Error active', 'Storing actief'),
+				insightsTitleFalse: title('Error cleared', 'Storing opgelost'),
+			});
+		} catch (err) {
+			this.error('Could not set the alarm_generic texts:', err);
+		}
+	}
+
+	/** One Homey notification; failing to create it must never block the error handling. */
+	private async notify(excerpt: string) {
+		try {
+			await this.homey.notifications.createNotification({ excerpt });
+		} catch (err) {
+			this.error('Could not create notification:', err);
+		}
+	}
+
+	/** Text shown for a code, e.g. "CH14: Problem in flow switch" (-1 = flag was on, code unknown). */
+	private errorText(code: number): string {
+		return code > 0 ? `CH${code}: ${errorTitle(code)}` : 'Error (code unknown)';
+	}
+
 	private async processErrorCode(code: number) {
 		await this.ensureCapability('alarm_generic');
+		await this.ensureCapability('thermav_error');
 
 		// Last code we reported; survives app restarts. -1 = flag was on but the code is unknown.
 		let previous = this.getStoreValue('errorCode');
 		if (typeof previous !== 'number') previous = this.getCapabilityValue('alarm_generic') ? -1 : 0;
 		if (previous === code) {
 			if (code === 0 && this.getCapabilityValue('alarm_generic') !== false) await this.setCapabilityValue('alarm_generic', false);
+			if (code === 0 && this.getCapabilityValue('thermav_error') === null) await this.setCapabilityValue('thermav_error', NO_ERROR_TEXT).catch(this.error);
 			return;
 		}
 
-		// The timeline texts are cosmetic: whatever goes wrong here must never stop the alarm flag and the triggers.
-		// (getCapabilityOptions throws "Invalid Capability" for a capability without options in driver.compose.json.)
-		const setTitles = async (opts: Record<string, unknown>) => {
-			try {
-				let current: Record<string, unknown> = {};
-				try { current = this.getCapabilityOptions('alarm_generic') ?? {}; } catch { /* no options stored yet */ }
-				await this.setCapabilityOptions('alarm_generic', { ...current, ...opts });
-			} catch (err) {
-				this.error('Could not set the alarm_generic timeline texts:', err);
-			}
-		};
-
+		const name = this.getName();
 		if (previous !== 0) {
-			const cleared = previous > 0 ? `Error ${previous} cleared: ${errorTitle(previous)}` : 'Error cleared';
-			await setTitles({ insightsTitleFalse: title(cleared) });
 			await this.setCapabilityValue('alarm_generic', false);
+			await this.notify(`${name}: error cleared - ${this.errorText(previous)}`);
 		}
 		if (code !== 0) {
-			const text = `Error ${code}: ${errorTitle(code)}`;
-			this.log(text);
-			await setTitles({ insightsTitleTrue: title(text) });
+			this.log(`Error ${this.errorText(code)}`);
 			await this.setCapabilityValue('alarm_generic', true);
+			await this.notify(`${name}: error ${this.errorText(code)}`);
 		}
+		await this.setCapabilityValue('thermav_error', code !== 0 ? this.errorText(code) : NO_ERROR_TEXT).catch(this.error);
 		await this.setStoreValue('errorCode', code);
 
 		// Flow trigger cards (tokens: code like "CH23" and the description). Fired after the state is stored,
@@ -721,7 +741,6 @@ protected debug(...args: any[]): void {
 
 	// Error code: alarm_generic stays the on/off flag, the device timeline shows code + title
 		if (this.isValid(result.errorcode)) await this.processErrorCode(Number(result.errorcode.value));
-
 
 // Silent Mode Status
             if (result['statussilentmode'] && result['statussilentmode'].value != 'xxx') {
