@@ -11,7 +11,7 @@ import {
 import { holdingregisters, inputregisters, coilregisters, discreteregisters } from '../../lib/registers';
 
 import { readActivePower } from '../../lib/energymeter';
-import { snapToThirds } from '../../lib/temperature';
+//import { snapToThirds } from '../../lib/temperature';
 import { ThermaV } from '../thermav';
 
 
@@ -535,8 +535,10 @@ class MyThermaVDevice extends ThermaV {
 
       const flowRate = val(finalRes.waterflowrate);
       // same 1/3 K sensor steps as the capabilities: the heat output (and COP) depends on the small outlet - inlet difference
-      const tempOut = snapToThirds(val(finalRes.tempwateroutlet));
-      const tempIn = snapToThirds(val(finalRes.tempwaterinlet));
+      //const tempOut = snapToThirds(val(finalRes.tempwateroutlet));
+	  const tempOut = Math.round(val(finalRes.tempwateroutlet) * 3) / 3;
+      // const tempIn = snapToThirds(val(finalRes.tempwaterinlet));
+	  const tempIn = Math.round(val(finalRes.tempwaterinlet) * 3) / 3;
 	  const compressorOn = val(finalRes.statuscompressor) === 1;
 
 //      if (val(finalRes.waterflowrate) > 5 && val(finalRes.statuscompressor) == 1
