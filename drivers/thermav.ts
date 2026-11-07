@@ -1,7 +1,7 @@
 import Homey from 'homey';
 import { errorTitle } from '../lib/errorcodes';
 import type { Measurement } from '../lib/modbus';
-import { snapToThirds } from '../lib/temperature';
+import { SENSORS } from '../lib/sensors';
 
 
 const OPERATING_MODES: Record<string, string> = { '0': 'cool', '1': 'cool', '2': 'off', '3': 'auto', '4': 'heat' };
@@ -413,6 +413,27 @@ protected debug(...args: any[]): void {
 		this.defrostActive = defrosting;
 	}
 
+	/** Copies every plain sensor of lib/sensors.ts from the poll result to its capability (added on first use). */
+	private async processSensors(result: Record<string, Measurement>) {
+		for (const sensor of SENSORS) {
+			const measurement = result[sensor.register];
+			if (!measurement) continue;                       // register was not read in this poll
+
+			let value = this.getScaledValue(measurement);
+			if (sensor.transform) value = sensor.transform(value);
+
+			if (!this.hasCapability(sensor.capability)) {
+				await this.addCapability(sensor.capability);
+				if (sensor.options) await this.setCapabilityOptions(sensor.capability, sensor.options);
+			}
+
+			const currentValue = this.getCapabilityValue(sensor.capability);
+			if (currentValue !== value) {
+				await this.setCapabilityValue(sensor.capability, value).catch(this.error);
+			}
+		}
+	}
+
     async processResult(result: Record<string, Measurement>) {
 		if (!result) return;
 
@@ -440,172 +461,12 @@ protected debug(...args: any[]): void {
 				}
             }
 
-            if (result['temproomcircuit1']) {
-				if (!this.hasCapability('measure_temperature')) {
-					await this.addCapability('measure_temperature');
-				}
-                //var temproomcircuit1 = Number(result['temproomcircuit1'].value) * (Math.pow(10, Number(result['temproomcircuit1'].scale)));
-				const temproomcircuit1 = this.getScaledValue(result['temproomcircuit1']);
-				const current = this.getCapabilityValue('measure_temperature');
-				if (current !== temproomcircuit1) {
-					await this.setCapabilityValue('measure_temperature', temproomcircuit1);
-				}
-            }
- 
-            if (result['tempwaterinlet']) {
-				if (!this.hasCapability('measure_temperature.tempwaterinlet')) {
-					await this.addCapability('measure_temperature.tempwaterinlet');
-				}
-				// sensor resolution is 1/3 K (value = (192 - raw) / 3): undo the 0.1 K rounding of the register
-				const tempwaterinlet = snapToThirds(this.getScaledValue(result['tempwaterinlet']));
-				const current = this.getCapabilityValue('measure_temperature.tempwaterinlet');
-				if (current !== tempwaterinlet) {
-					await this.setCapabilityValue('measure_temperature.tempwaterinlet', tempwaterinlet);
-				}
-            }
-
-            if (result['tempwateroutlet']) {
-				if (!this.hasCapability('measure_temperature.tempwateroutlet')) {
-					await this.addCapability('measure_temperature.tempwateroutlet');
-				}
-				const tempwateroutlet = snapToThirds(this.getScaledValue(result['tempwateroutlet']));
-				const current = this.getCapabilityValue('measure_temperature.tempwateroutlet');
-				if (current !== tempwateroutlet) {
-					await this.setCapabilityValue('measure_temperature.tempwateroutlet', tempwateroutlet);
-				}
-            }
-
-            if (result['tempoutdoor']) {
-				if (!this.hasCapability('measure_temperature.tempoutdoor')) {
-					await this.addCapability('measure_temperature.tempoutdoor');
-				}
-				// var tempoutdoor = Number(result['tempoutdoor'].value) * (Math.pow(10, Number(result['tempoutdoor'].scale)));
-				const tempoutdoor = this.getScaledValue(result['tempoutdoor']);
-				const current = this.getCapabilityValue('measure_temperature.tempoutdoor');
-				if (current !== tempoutdoor) {
-					await this.setCapabilityValue('measure_temperature.tempoutdoor', tempoutdoor);
-				}
-            }
-
-            if (result['temppipein']) {
-				if (!this.hasCapability('measure_temperature.temppipein')) {
-					await this.addCapability('measure_temperature.temppipein');
-				}
-                // var temppipein = Number(result['temppipein'].value) * (Math.pow(10, Number(result['temppipein'].scale)));
-				const temppipein = this.getScaledValue(result['temppipein']);
-				const current = this.getCapabilityValue('measure_temperature.temppipein');
-				if (current !== temppipein) {
-					await this.setCapabilityValue('measure_temperature.temppipein', temppipein);
-				}
-            }
-
-          if (result['tempsuction']) {
-				if (!this.hasCapability('measure_temperature.tempsuction')) {
-					await this.addCapability('measure_temperature.tempsuction');
-				}
-                //var tempsuction = Number(result['tempsuction'].value) * (Math.pow(10, Number(result['tempsuction'].scale)));
-				const tempsuction = this.getScaledValue(result['tempsuction']);
-				const current = this.getCapabilityValue('measure_temperature.tempsuction');
-				if (current !== tempsuction) {
-					await this.setCapabilityValue('measure_temperature.tempsuction', tempsuction);
-				}
-            }
-
-// Air Heat Exchanger Temperature
-          if (result['temphex']) {
-				if (!this.hasCapability('measure_temperature.temphex')) {
-					await this.addCapability('measure_temperature.temphex');
-					await this.setCapabilityOptions('measure_temperature.temphex', { "title": {
-						"en": "Heat Exchanger Temperature",
-						"nl": "Temperatuur Warmtewisselaar"
-						},
-						});
-				}
-                //var temphex = Number(result['temphex'].value) * (Math.pow(10, Number(result['temphex'].scale)));
-				const temphex = this.getScaledValue(result['temphex']);
-				const current = this.getCapabilityValue('measure_temperature.temphex');
-				if (current !== temphex) {
-					await this.setCapabilityValue('measure_temperature.temphex', temphex);
-				}
-            }
-
-// Waterflowrate
-            if (result['waterflowrate']) {
-				if (!this.hasCapability('measure_water.waterflowrate')) {
-					await this.addCapability('measure_water.waterflowrate');
-				}
-                //var waterflowrate = Number(result['waterflowrate'].value) * (Math.pow(10, Number(result['waterflowrate'].scale)));
-				var waterflowrate = this.getScaledValue(result['waterflowrate']);
-				if (waterflowrate == 5) { waterflowrate = 0 }
-				// The minimum value waterflowrate can report is 5, even is there is no water flow at all. The heatpump wiill shutdown before the actual flow reaches 5, so it safe to assume that the flow is 0.
-				const current = this.getCapabilityValue('measure_water.waterflowrate');
-				if (current !== waterflowrate) {
-					await this.setCapabilityValue('measure_water.waterflowrate', waterflowrate);
-				}
-            }
-
-// Compressor Speed			
-            if (result['freqinverter']) {
-				if (!this.hasCapability('measure_frequency.freqinverter')) {
-					await this.addCapability('measure_frequency.freqinverter');
-				}
-                // var freqinverter = Number(result['freqinverter'].value) * (Math.pow(10, Number(result['freqinverter'].scale)));
-				const freqinverter = this.getScaledValue(result['freqinverter']);
-				const current = this.getCapabilityValue('measure_frequency.freqinverter');
-				if (current !== freqinverter) {
-					await this.setCapabilityValue('measure_frequency.freqinverter', freqinverter);
-				}
-            }
+			// Plain sensors (register -> capability), see lib/sensors.ts
+			await this.processSensors(result);
 
 // if (this.hasCapability('measure_pressure.pressurelow')) {
 //					this.removeCapability('measure_pressure.pressurelow');
 //				}
-
-// High Side Gas Pressure				
-            if (result['pressurehigh']) {
-				if (!this.hasCapability('measure_pressure.pressurehigh')) {
-					await this.addCapability('measure_pressure.pressurehigh');
-					await this.setCapabilityOptions('measure_pressure.pressurehigh', { "title": {
-						"en": "High Side Pressure",
-						"nl": "High Side Pressure"
-						},
-						"units": {
-							"en": "bar",
-							"nl": "bar"
-							},
-							"decimals": 2,
-						});
-				}
-                //var pressurehigh = Number(result['pressurehigh'].value) * (Math.pow(10, Number(result['pressurehigh'].scale)));
-				const pressurehigh = this.getScaledValue(result['pressurehigh']);
-				const current = this.getCapabilityValue('measure_pressure.pressurehigh');
-				if (current !== pressurehigh) {
-					await this.setCapabilityValue('measure_pressure.pressurehigh', pressurehigh);
-				}
-            }
-
-// Low Side Gas Pressure
-            if (result['pressurelow']) {
-				if (!this.hasCapability('measure_pressure.pressurelow')) {
-					await this.addCapability('measure_pressure.pressurelow');
-					await this.setCapabilityOptions('measure_pressure.pressurelow', { "title": {
-						"en": "Low Side Pressure",
-						"nl": "Low Side Pressure"
-						},
-						"units": {
-							"en": "bar",
-							"nl": "bar"
-							},
-							"decimals": 2,
-						});
-				}
-                //var pressurelow = Number(result['pressurelow'].value) * (Math.pow(10, Number(result['pressurelow'].scale)));
-				const pressurelow = this.getScaledValue(result['pressurelow']);
-				const current = this.getCapabilityValue('measure_pressure.pressurelow');
-				if (current !== pressurelow) {
-					await this.setCapabilityValue('measure_pressure.pressurelow', pressurelow);
-				}
-            }
 
 // Water Pressure
            if (result['waterpressure'] && Number(result['waterpressure'].value) != 0) {
@@ -624,24 +485,6 @@ protected debug(...args: any[]): void {
 				if (this.hasCapability('measure_pressure.waterpressure')) {
 					// await this.removeCapability('measure_pressure.waterpressure');
 					await this.setCapabilityValue('measure_pressure.waterpressure', null);
-				}
-            }
-
-// Discharge Temperature
-            if (result['dischargetemp']) {
-				if (!this.hasCapability('measure_temperature.dischargetemp')) {
-					await this.addCapability('measure_temperature.dischargetemp');
-					await this.setCapabilityOptions('measure_temperature.dischargetemp', { "title": {
-						"en": "Discharge Temperature",
-						"nl": "Discharge Temperature"
-						},
-						});
-				}
-                //var dischargetemp = Number(result['dischargetemp'].value) * (Math.pow(10, Number(result['dischargetemp'].scale)));
-				const dischargetemp = this.getScaledValue(result['dischargetemp']);
-				const current = this.getCapabilityValue('measure_temperature.dischargetemp');
-				if (current !== dischargetemp) {
-					await this.setCapabilityValue('measure_temperature.dischargetemp', dischargetemp);
 				}
             }
 
