@@ -105,7 +105,7 @@ protected debug(...args: any[]): void {
 	) {
 		const item = result[source];
 
-		if (!item || item.value === 'xxx') {
+		if (!item) {
 			return;
 		}
 
@@ -149,7 +149,7 @@ protected debug(...args: any[]): void {
 	}
 
 	private isValid(m?: Measurement): m is Measurement {
-		return !!m && m.value !== 'xxx';
+		return !!m;
 	}
 // -----------------------------------------------------------------------------------------
 
@@ -428,7 +428,7 @@ protected debug(...args: any[]): void {
 //                debug.log(k, result[k].value, result[k].scale, result[k].label)
 //            }
 
-            if (result['temptarget1'] && result['temptarget1'].value != 'xxx') {
+            if (result['temptarget1']) {
 				if (!this.hasCapability('target_temperature')) {
 					await this.addCapability('target_temperature');
 				}
@@ -440,7 +440,7 @@ protected debug(...args: any[]): void {
 				}
             }
 
-            if (result['temproomcircuit1'] && result['temproomcircuit1'].value != 'xxx') {
+            if (result['temproomcircuit1']) {
 				if (!this.hasCapability('measure_temperature')) {
 					await this.addCapability('measure_temperature');
 				}
@@ -452,7 +452,7 @@ protected debug(...args: any[]): void {
 				}
             }
  
-            if (result['tempwaterinlet'] && result['tempwaterinlet'].value != 'xxx') {
+            if (result['tempwaterinlet']) {
 				if (!this.hasCapability('measure_temperature.tempwaterinlet')) {
 					await this.addCapability('measure_temperature.tempwaterinlet');
 				}
@@ -464,7 +464,7 @@ protected debug(...args: any[]): void {
 				}
             }
 
-            if (result['tempwateroutlet'] && result['tempwateroutlet'].value != 'xxx') {
+            if (result['tempwateroutlet']) {
 				if (!this.hasCapability('measure_temperature.tempwateroutlet')) {
 					await this.addCapability('measure_temperature.tempwateroutlet');
 				}
@@ -475,7 +475,7 @@ protected debug(...args: any[]): void {
 				}
             }
 
-            if (result['tempoutdoor'] && result['tempoutdoor'].value != 'xxx') {
+            if (result['tempoutdoor']) {
 				if (!this.hasCapability('measure_temperature.tempoutdoor')) {
 					await this.addCapability('measure_temperature.tempoutdoor');
 				}
@@ -487,7 +487,7 @@ protected debug(...args: any[]): void {
 				}
             }
 
-            if (result['temppipein'] && result['temppipein'].value != 'xxx') {
+            if (result['temppipein']) {
 				if (!this.hasCapability('measure_temperature.temppipein')) {
 					await this.addCapability('measure_temperature.temppipein');
 				}
@@ -499,7 +499,7 @@ protected debug(...args: any[]): void {
 				}
             }
 
-          if (result['tempsuction'] && result['tempsuction'].value != 'xxx') {
+          if (result['tempsuction']) {
 				if (!this.hasCapability('measure_temperature.tempsuction')) {
 					await this.addCapability('measure_temperature.tempsuction');
 				}
@@ -512,7 +512,7 @@ protected debug(...args: any[]): void {
             }
 
 // Air Heat Exchanger Temperature
-          if (result['temphex'] && result['temphex'].value != 'xxx') {
+          if (result['temphex']) {
 				if (!this.hasCapability('measure_temperature.temphex')) {
 					await this.addCapability('measure_temperature.temphex');
 					await this.setCapabilityOptions('measure_temperature.temphex', { "title": {
@@ -530,7 +530,7 @@ protected debug(...args: any[]): void {
             }
 
 // Waterflowrate
-            if (result['waterflowrate'] && result['waterflowrate'].value != 'xxx') {
+            if (result['waterflowrate']) {
 				if (!this.hasCapability('measure_water.waterflowrate')) {
 					await this.addCapability('measure_water.waterflowrate');
 				}
@@ -545,7 +545,7 @@ protected debug(...args: any[]): void {
             }
 
 // Compressor Speed			
-            if (result['freqinverter'] && result['freqinverter'].value != 'xxx') {
+            if (result['freqinverter']) {
 				if (!this.hasCapability('measure_frequency.freqinverter')) {
 					await this.addCapability('measure_frequency.freqinverter');
 				}
@@ -562,7 +562,7 @@ protected debug(...args: any[]): void {
 //				}
 
 // High Side Gas Pressure				
-            if (result['pressurehigh'] && result['pressurehigh'].value != 'xxx') {
+            if (result['pressurehigh']) {
 				if (!this.hasCapability('measure_pressure.pressurehigh')) {
 					await this.addCapability('measure_pressure.pressurehigh');
 					await this.setCapabilityOptions('measure_pressure.pressurehigh', { "title": {
@@ -585,7 +585,7 @@ protected debug(...args: any[]): void {
             }
 
 // Low Side Gas Pressure
-            if (result['pressurelow'] && result['pressurelow'].value != 'xxx') {
+            if (result['pressurelow']) {
 				if (!this.hasCapability('measure_pressure.pressurelow')) {
 					await this.addCapability('measure_pressure.pressurelow');
 					await this.setCapabilityOptions('measure_pressure.pressurelow', { "title": {
@@ -608,7 +608,7 @@ protected debug(...args: any[]): void {
             }
 
 // Water Pressure
-           if (result['waterpressure'] && result['waterpressure'].value != 'xxx' && Number(result['waterpressure'].value) != 0) {
+           if (result['waterpressure'] && Number(result['waterpressure'].value) != 0) {
 				if (!this.hasCapability('measure_pressure.waterpressure')) {
 					await this.addCapability('measure_pressure.waterpressure');
 				}
@@ -628,7 +628,7 @@ protected debug(...args: any[]): void {
             }
 
 // Discharge Temperature
-            if (result['dischargetemp'] && result['dischargetemp'].value != 'xxx') {
+            if (result['dischargetemp']) {
 				if (!this.hasCapability('measure_temperature.dischargetemp')) {
 					await this.addCapability('measure_temperature.dischargetemp');
 					await this.setCapabilityOptions('measure_temperature.dischargetemp', { "title": {
@@ -646,7 +646,7 @@ protected debug(...args: any[]): void {
             }
 
 // Operational State (Standby, Cooling, Heating)
-            if (result['oduoperationcycle'] && result['oduoperationcycle'].value != 'xxx') {
+            if (result['oduoperationcycle']) {
 				if (!this.hasCapability('operational_state')) {
 					await this.addCapability('operational_state');
 					await this.setCapabilityOptions('operational_state', { "title": {
@@ -708,7 +708,7 @@ protected debug(...args: any[]): void {
 		}
 
 // Defrost Status
-            if (result['statusdefrost'] && result['statusdefrost'].value != 'xxx') {
+            if (result['statusdefrost']) {
 				if (!this.hasCapability('alarm_cold')) {
 					await this.addCapability('alarm_cold');
 				}
@@ -727,7 +727,7 @@ protected debug(...args: any[]): void {
 
 // Error Code
 /*
-            if (result['errorcode'] && result['errorcode'].value != 'xxx') {
+            if (result['errorcode']) {
 				if (!this.hasCapability('alarm_generic')) {
 					await this.addCapability('alarm_generic');
 				}
@@ -743,7 +743,7 @@ protected debug(...args: any[]): void {
 		if (this.isValid(result.errorcode)) await this.processErrorCode(Number(result.errorcode.value));
 
 // Silent Mode Status
-            if (result['statussilentmode'] && result['statussilentmode'].value != 'xxx') {
+            if (result['statussilentmode']) {
 //			var statussilentmode = Number(result['statussilentmode'].value);
 			const statussilentmode = Number(result['statussilentmode'].value) === 1;
 			const current = this.getSetting('settings_enable_silent_mode');
@@ -756,7 +756,7 @@ protected debug(...args: any[]): void {
             }
 
 //Cooling Mode
-            if (result['statuscooling'] && result['statuscooling'].value != 'xxx') {
+            if (result['statuscooling']) {
 //			var statuscooling = Number(result['statuscooling'].value);
 			const statuscooling = Number(result['statuscooling'].value) === 1;
 			const current = this.getSetting('settings_coolingmode');
