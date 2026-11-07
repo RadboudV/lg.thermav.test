@@ -11,7 +11,7 @@ import {
 import { holdingregisters, inputregisters, coilregisters, discreteregisters } from '../../lib/registers';
 
 import { readActivePower } from '../../lib/energymeter';
-//import { MIN_FLOW_RATE } from '../../lib/sensors';
+import { MIN_FLOW_RATE } from '../../lib/sensors';
 import { snapToThirds } from '../../lib/temperature';
 import { ThermaV } from '../thermav';
 
