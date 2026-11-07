@@ -478,7 +478,9 @@ class MyThermaVDevice extends ThermaV {
 
       // a meter that reports export (negative) or 0 W cannot give a meaningful COP
       const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 100) / 100 : 0;
-      await this.setCapabilityValue('measure_cop', cop).catch(this.error);
+	  const oldcop = await this.getCapabilityValue('measure_cop');
+	  const newcop = (oldcop + cop) / 2;
+      await this.setCapabilityValue('measure_cop', newcop).catch(this.error);
       this.meterFailing = false;
     } catch (err) {
       if (!this.meterFailing) this.error('Energy meter not available:', err);   // log once per outage
