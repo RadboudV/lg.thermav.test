@@ -742,7 +742,6 @@ protected debug(...args: any[]): void {
 	// Error code: alarm_generic stays the on/off flag, the device timeline shows code + title
 		if (this.isValid(result.errorcode)) await this.processErrorCode(Number(result.errorcode.value));
 
-
 // Silent Mode Status
             if (result['statussilentmode'] && result['statussilentmode'].value != 'xxx') {
 //			var statussilentmode = Number(result['statussilentmode'].value);
