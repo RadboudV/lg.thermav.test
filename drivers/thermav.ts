@@ -1,6 +1,7 @@
 import Homey from 'homey';
 import { errorTitle } from '../lib/errorcodes';
 import type { Measurement } from '../lib/modbus';
+import { snapToThirds } from '../lib/temperature';
 
 
 const OPERATING_MODES: Record<string, string> = { '0': 'cool', '1': 'cool', '2': 'off', '3': 'auto', '4': 'heat' };
@@ -428,11 +429,8 @@ protected debug(...args: any[]): void {
 				if (!this.hasCapability('measure_temperature.tempwaterinlet')) {
 					await this.addCapability('measure_temperature.tempwaterinlet');
 				}
-                // var tempwaterinlet = Number(result['tempwaterinlet'].value) * (Math.pow(10, Number(result['tempwaterinlet'].scale)));
-				const tempwaterinlet = Number((Math.round((Number(result['tempwaterinlet'].value) * (Math.pow(10, Number(result['tempwaterinlet'].scale))))*3)/3).toFixed(2));
-				// const tempwaterinlet = (((Round(Number(result['tempwaterinlet'].value) * (Math.pow(10, Number(result['tempwaterinlet'].scale)))),0)*3)/3;
-				// const tempwaterinlet =  Math.round(Number(result['tempwaterinlet'].value) * Math.pow(10, Number(result['tempwaterinlet'].scale)) * 3, 0 ) / 3);
-				// const tempwaterinlet = this.getScaledValue(result['tempwaterinlet']);
+				// sensor resolution is 1/3 K (value = (192 - raw) / 3): undo the 0.1 K rounding of the register
+				const tempwaterinlet = snapToThirds(this.getScaledValue(result['tempwaterinlet']));
 				const current = this.getCapabilityValue('measure_temperature.tempwaterinlet');
 				if (current !== tempwaterinlet) {
 					await this.setCapabilityValue('measure_temperature.tempwaterinlet', tempwaterinlet);
@@ -443,10 +441,7 @@ protected debug(...args: any[]): void {
 				if (!this.hasCapability('measure_temperature.tempwateroutlet')) {
 					await this.addCapability('measure_temperature.tempwateroutlet');
 				}
-                //var tempwateroutlet = Number(result['tempwateroutlet'].value) * (Math.pow(10, Number(result['tempwateroutlet'].scale)));
-				//const tempwateroutlet =  Math.round(Number(result['tempwateroutlet'].value) * Math.pow(10, Number(result['tempwateroutlet'].scale)) * 3, 0 ) / 3;
-				const tempwateroutlet = Number((Math.round((Number(result['tempwateroutlet'].value) * (Math.pow(10, Number(result['tempwateroutlet'].scale))))*3)/3).toFixed(2));
-				//const tempwateroutlet = this.getScaledValue(result['tempwateroutlet']);
+				const tempwateroutlet = snapToThirds(this.getScaledValue(result['tempwateroutlet']));
 				const current = this.getCapabilityValue('measure_temperature.tempwateroutlet');
 				if (current !== tempwateroutlet) {
 					await this.setCapabilityValue('measure_temperature.tempwateroutlet', tempwateroutlet);
