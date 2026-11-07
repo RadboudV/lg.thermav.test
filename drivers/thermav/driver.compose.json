@@ -111,6 +111,12 @@
       },
 	  "uiComponent": null
     },	
+	  "alarm_generic": {
+      "title": {
+        "en": "Error",
+		"nl": "Storing"
+      }
+	},
 	  "alarm_cold": {
       "title": {
         "en": "Defrosting",
