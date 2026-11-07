@@ -13,10 +13,14 @@ export const holdingregisters: Record<string, RegDef> = {
 	"temptarget1":    [2, 1, 'UINT16', "Target Temperature Circuit 1", -1],
 	"temproom1":      [3, 1, 'INT16',  "Room 1 Temperature", 0],
 	"shiftvalue1":    [4, 1, 'UINT16', "Shift Value Target Circuit 1", 0],
+	// Circuit 2: a value other than 0 in temptarget2 means circuit 2 is in use. The operating mode (register 0) is shared
+	// by circuit 1 and 2 and cannot be set per circuit.
 	"temptarget2":    [5, 1, 'INT16',  "Target Temperature Circuit 2", -1],
 	"temproom2":      [6, 1, 'INT16',  "Room 2 Temperature", 0],
 	"shiftvalue2":    [7, 1, 'UINT16', "Shift Value Target Circuit 2", 0],
 	"temptargetdhw":  [8, 1, 'INT16',  "Domestic Hot Water Temperature Target", -1],
+	// Energy state: writing only has effect when the energy state input of the heat pump is set to "Use Modbus"
+	// (installer menu, ESS use type). With another setting the value is ignored.
 	"energystateinputhr": [9, 1, 'UINT16', "EnergyState Input", 0]
 	// 0 : Not Use, 1 : Forced off (equal to TB_SG1=close / TB_SG2=open), 2 : Normal operation (equal to TB_SG1=open / TB_SG2=open), 3 : On-recommendation (equal to TB_SG1=open / TB_SG2=close),
 	// 4 : On-command (equal to TB_SG1=close / TB_SG2=close), 5 : On-command step 2 (++ Energy Consumption compared to Normal), 6 : On-recommendation Step 1 (+ Energy Consumption compared to Normal),
@@ -25,14 +29,20 @@ export const holdingregisters: Record<string, RegDef> = {
 
 // Input Registers (only read) (30001+x)
 export const inputregisters: Record<string, RegDef> = {
+	// Error code: 0 = no error, otherwise the number shown on the display (CH14 = code 14 = flow switch, see lib/errorcodes.ts).
+	// The register shows the error that is active now: a short error can clear between two polls and is then never seen.
+	// See also "statuserror" (discrete register 13).
 	"errorcode":        [0, 1, 'UINT16', "Error Code", 0],
 	"oduoperationcycle":[1, 1, 'UINT16', "ODU Operation Cycle", 0], // 0 : Standby(OFF) / 1 : Cooling / 2 : Heating
+	// Water inlet / outlet: the real sensor resolution is 1/3 K, temperature = (192 - raw) / 3. The register shows this
+	// rounded to 0.1 K, so the app snaps it back to 1/3 K steps with snapToThirds (lib/temperature.ts).
 	"tempwaterinlet":   [2, 1, 'INT16',  "Water Inlet Temperature", -1],
 	"tempwateroutlet":  [3, 1, 'INT16',  "Water Outlet Temperature", -1],
 	"tempwaterbackupheater": [4, 1, 'INT16', "Water Outlet Temperature Backup Heater", -1],
 	"tempwaterDHWtank": [5, 1, 'INT16',  "DHW Tank Temperature", -1],
 	"tempsolarcollector": [6, 1, 'INT16', "Solar Collector Temperature", -1],
 	"temproomcircuit1": [7, 1, 'INT16',  "Room 1 Temperature", -1],
+	// The heat pump reports 5 as the minimum, even when there is no flow at all (see MIN_FLOW_RATE in lib/sensors.ts).
 	"waterflowrate":    [8, 1, 'UINT16', "Water Flow Rate", -1],
 	"waterflowtemp":    [9, 1, 'INT16',  "Water Flow Temperature", -1],
 	"temproomcircuit2": [10, 1, 'INT16', "Room 2 Temperature", -1],

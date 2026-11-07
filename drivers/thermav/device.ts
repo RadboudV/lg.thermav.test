@@ -48,7 +48,9 @@ const PRODUCT_INFO_NAMES: Record<number, string> = {
   6: 'System boiler',
 };
 
-// Capabilities that were renamed. Devices that were added with the old ids are migrated once in onInit:
+// Capabilities that were renamed: the thermostat capabilities used the sub ids ".thermostat" (thermostat_mode.thermostat,
+// target_temperature.thermostat) and now use the plain ids, which also makes the built-in thermostat flow cards work.
+// Devices that were added with the old ids are migrated once in onInit:
 // the new capability is added, the value is copied and the old one is removed. [old id, new id, options of the new capability]
 // (Flows built on the old capabilities have to be re-created, the flow cards belong to the capability id.)
 const RENAMED_CAPABILITIES: Array<[string, string, Record<string, unknown> | undefined]> = [
@@ -152,6 +154,9 @@ class MyThermaVDevice extends ThermaV {
    * Called from the first successful poll. A dead link throws, so the next poll tries again;
    * a Modbus exception (register not supported) is final for this app run.
    * Must run while this.busy is held and the connection is up.
+   *
+   * Decoding: the low byte of the product group register must be 0x8X for an AWHP. Only then is the product info valid,
+   * and its type is bits 8-11 (nibble). Example measured on a Monobloc AWHP: info 0x1310 -> type 3 = Monobloc.
    */
   private async detectProduct(client: InstanceType<typeof Modbus.client.TCP>) {
     let label: string;
@@ -361,7 +366,11 @@ class MyThermaVDevice extends ThermaV {
 // ---- actions (used by capability listeners and by the flow cards in driver.ts) ------
 //**************************************************************************************
 
-  /** Thermostat setpoint. In 'auto' mode the pump works with a shift value instead of an absolute target. */
+  /**
+   * Thermostat setpoint. In 'auto' mode the pump works with a shift value instead of an absolute target:
+   * the shift (-5 to +5) moves the weather curve up or down. A change of the thermostat is therefore converted to a
+   * rounded delta (1 step from the app, more from a flow card) that is added to the current shift value and limited to -5..+5.
+   */
   async setTargetTemperature(value: number) {
     if (this.getCapabilityValue('thermostat_mode') === 'auto') {
       if (this.shiftValue === undefined) throw new Error('Shift value not known yet, try again after the next poll');
@@ -491,6 +500,14 @@ class MyThermaVDevice extends ThermaV {
 //**************************************************************************************
   /**
    * Poll the heatpump
+   *
+   * Overview of the poll flow:
+   *  - one poll loop per device; a busy lock makes sure only one Modbus sequence (poll OR write) runs at a time
+   *  - all four register kinds are read in blocks, the result is kept as a snapshot (used by the condition flow cards)
+   *  - for 5 seconds after a write the result is not processed, because the heat pump may still report the old value
+   *  - processResult updates capabilities and settings and fires trigger flow cards for changes since the previous poll
+   *    (the first poll after a start never fires triggers)
+   *  - heat output, energy meters and COP are calculated afterwards; 3 failed polls in a row make the device unavailable
    */
 //**************************************************************************************
   async pollHeatpump() {
@@ -552,6 +569,8 @@ class MyThermaVDevice extends ThermaV {
 
       if (flowRate > MIN_FLOW_RATE && compressorOn
           && Number.isFinite(flowRate) && Number.isFinite(tempOut) && Number.isFinite(tempIn)) {
+        // flowRate is in l/min, * 60 = l/h. 1.16227 = specific heat of water in Wh/(l.K), so l/h * K * 1.16227 = W.
+        // Positive = heating, negative = cooling. The COP is calculated from this value (see processEnergyMeter).
         const energyOutput = Math.round(flowRate * 60 * (tempOut - tempIn) * 1.16227);
         producedheat = Math.max(0, energyOutput);
         producedcold = Math.max(0, -energyOutput); // Store the cooling energy produced as positive value

@@ -173,7 +173,10 @@ protected debug(...args: any[]): void {
 		}
 	}
 
-	/** One Homey notification; failing to create it must never block the error handling. */
+	/**
+	 * One Homey notification; failing to create it must never block the error handling.
+	 * Notifications need no permission in app.json (an entry such as homey:manager:notifications is invalid and breaks the build).
+	 */
 	private async notify(excerpt: string) {
 		try {
 			await this.homey.notifications.createNotification({ excerpt });
@@ -348,6 +351,10 @@ protected debug(...args: any[]): void {
 
 
 	// ---- defrost counter ---------------------------------------------------------------------
+	// Counts the start of every defrost cycle (statusdefrost goes from 0 to 1) in the capability defrosts_today.
+	// The count and its day are kept in the device store (keys 'defrostCount' and 'defrostDay') so they survive an app restart.
+	// The counter is reset at local midnight (timer, plus a day check on every poll as fallback). The first poll after an
+	// app start never counts: a defrost that is already running at that moment is missed.
 
 	/** Date and time of day in the timezone configured on the Homey (one place for all local-time logic). */
 	private localTime(date = new Date()) {
