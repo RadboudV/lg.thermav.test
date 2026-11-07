@@ -529,7 +529,7 @@ class MyThermaVDevice extends ThermaV {
 
       // Heat output. A register that could not be read must not fail the poll: treat it as "no output".
       const val = (m?: { value: string; scale: string }) =>
-        (m && m.value !== 'xxx') ? Number(m.value) * Math.pow(10, Number(m.scale)) : NaN;
+        m ? Number(m.value) * Math.pow(10, Number(m.scale)) : NaN;
 
       let producedheat = 0;
       let producedcold = 0;
