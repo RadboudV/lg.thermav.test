@@ -483,12 +483,14 @@ class MyThermaVDevice extends ThermaV {
 
     try {
       const power = await readActivePower(address);
-      await this.setCapabilityValue('measure_power.electric', power).catch(this.error);
+	  const newpower = compressorOn && power > 0 ? Math.round((this.getCapabilityValue('measure_power.electric') + power) / 2) : power;
+      await this.setCapabilityValue('measure_power.electric', newpower).catch(this.error);
 
       // a meter that reports export (negative) or 0 W cannot give a meaningful COP
-      const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 100) / 100 : 0;
 	  const oldcop = await this.getCapabilityValue('measure_cop');
-	  const newcop = (oldcop + cop) / 2;
+      const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 100) / 100 : 0;
+	  //const oldcop = await this.getCapabilityValue('measure_cop');
+	  const newcop = cop > 0 ? (oldcop + cop) / 2 : 0; 
       await this.setCapabilityValue('measure_cop', newcop).catch(this.error);
       this.meterFailing = false;
     } catch (err) {
