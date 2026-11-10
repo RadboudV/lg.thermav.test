@@ -1873,6 +1873,19 @@
                 "en": "IP address of the energy meter that measures the electric power of the heat pump (reads http://<address>/api/v1/data, field active_power_w). Leave empty to disable. When set, the capabilities Electric power and COP are added; when emptied they are removed. The COP is only calculated while the compressor is running, otherwise it is 0. Note: the meter should measure the heat pump only; a whole-house meter gives a wrong COP.",
                 "nl": "IP adres van de energiemeter die het elektrisch vermogen van de warmtepomp meet (leest http://<adres>/api/v1/data, veld active_power_w). Leeg laten om uit te schakelen. Als dit is ingevuld worden de capabilities Elektrisch vermogen en COP toegevoegd; bij leegmaken worden ze verwijderd. De COP wordt alleen berekend als de compressor draait, anders is deze 0. Let op: de meter moet alleen de warmtepomp meten; een meter voor het hele huis geeft een onjuiste COP."
               }
+            },
+            {
+              "id": "cop_smoothing",
+              "type": "checkbox",
+              "value": true,
+              "label": {
+                "en": "Smooth COP",
+                "nl": "COP afvlakken"
+              },
+              "hint": {
+                "en": "Calculates the COP from the average heat output and electric power of the last 5 polls instead of from a single poll. This gives a more stable value but reacts a little slower. The average is restarted when the compressor stops.",
+                "nl": "Berekent de COP uit het gemiddelde warmtevermogen en elektrisch vermogen van de laatste 5 metingen in plaats van uit één meting. Dit geeft een stabielere waarde maar reageert iets trager. Het gemiddelde begint opnieuw als de compressor stopt."
+              }
             }
           ]
         }
