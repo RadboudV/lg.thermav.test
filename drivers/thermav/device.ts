@@ -10,6 +10,7 @@ import {
 } from '../../lib/modbus';
 import { holdingregisters, inputregisters, coilregisters, discreteregisters } from '../../lib/registers';
 
+import { CopAverage } from '../../lib/copaverage';
 import { readActivePower } from '../../lib/energymeter';
 import { MIN_FLOW_RATE } from '../../lib/sensors';
 import { snapToThirds } from '../../lib/temperature';
@@ -19,6 +20,7 @@ import { ThermaV } from '../thermav';
 // Set default polling interval (seconds) >= time needed to read all modbus registers!
 const DEFAULT_POLLING_INTERVAL = 30;
 // After a write, ignore register values from polls for this long (heat pump needs time to apply the change)
+const COP_AVERAGE_POLLS = 5;           // moving average of the COP inputs over this many polls (setting 'cop_smoothing')
 const MAX_METER_GAP_S = 300;          // longest gap (s) that is still counted in the energy meters
 const WRITE_SETTLE_MS = 5000;
 // Mark the device unavailable after this many failed polls/writes in a row
@@ -72,6 +74,7 @@ class MyThermaVDevice extends ThermaV {
   private connecting: Promise<void> | null = null;
   private busy = false;            // one Modbus transaction sequence at a time (poll OR write)
   private failures = 0;
+  private copAverage = new CopAverage(COP_AVERAGE_POLLS, MAX_METER_GAP_S * 1000);
   private meterFailing = false;      // energy meter unreachable at the previous poll (log once per outage)
   private lastMeterTime = 0;       // timestamp (ms) of the previous meter update (0 = none yet)
   private lastWrite = 0;           // timestamp (ms) of the last successful write to the heat pump
@@ -483,19 +486,27 @@ class MyThermaVDevice extends ThermaV {
 
     try {
       const power = await readActivePower(address);
-	  const newpower = compressorOn && power > 0 ? Math.round((this.getCapabilityValue('measure_power.electric') + power) / 2) : power;
-      await this.setCapabilityValue('measure_power.electric', newpower).catch(this.error);
+      await this.setCapabilityValue('measure_power.electric', power).catch(this.error);
 
-      // a meter that reports export (negative) or 0 W cannot give a meaningful COP
-	  const oldcop = await this.getCapabilityValue('measure_cop');
-      const cop = compressorOn && power > 0 ? Math.round((producedPower / power) * 100) / 100 : 0;
-	  //const oldcop = await this.getCapabilityValue('measure_cop');
-	  const newcop = cop > 0 ? (oldcop + cop) / 2 : 0; 
-      await this.setCapabilityValue('measure_cop', newcop).catch(this.error);
+      // COP: only while the compressor runs; a meter that reports export (negative) or 0 W cannot give a meaningful COP.
+      let cop = 0;
+      if (compressorOn && power > 0) {
+        if (this.getSetting('cop_smoothing') === false) {
+          this.copAverage.clear();
+          cop = Math.round((producedPower / power) * 100) / 100;
+        } else {
+          this.copAverage.add(producedPower, power);    // moving average over the last 5 polls
+          cop = this.copAverage.cop();
+        }
+      } else {
+        this.copAverage.clear();                        // do not mix values from before and after a stop
+      }
+      await this.setCapabilityValue('measure_cop', cop).catch(this.error);
       this.meterFailing = false;
     } catch (err) {
       if (!this.meterFailing) this.error('Energy meter not available:', err);   // log once per outage
       this.meterFailing = true;
+      this.copAverage.clear();
       await this.setCapabilityValue('measure_power.electric', null).catch(this.error);
       await this.setCapabilityValue('measure_cop', null).catch(this.error);
     }

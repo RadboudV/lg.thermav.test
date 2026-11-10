@@ -15,7 +15,7 @@ Homey app for LG Therma V R32 heat pumps, connected through a Modbus RTU-to-TCP 
   temperature are then added, and removed again when it goes back to 0. The operating mode is shared with circuit 1.
 - **Energy meter and COP** (optional): enter the IP address of an energy meter that measures the heat pump
   (`http://<address>/api/v1/data`, field `active_power_w`). This adds *Electric power* and *COP*. The COP (heat or cold produced
-  divided by electric power) is only calculated while the compressor runs, otherwise it is 0. A meter for the whole house
+  divided by electric power) is only calculated while the compressor runs, otherwise it is 0. By default it is smoothed (setting *Smooth COP*): average heat output divided by average electric power of the last 5 polls. A meter for the whole house
   gives a wrong COP.
 - **Defrosts today**: counts the defrost cycles of the current day and resets at midnight.
 - **Errors**: the error flag (`alarm_generic`), the text capability *Current error* (for example "CH14: Problem in flow switch")
