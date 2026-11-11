@@ -370,11 +370,21 @@ class MyThermaVDevice extends ThermaV {
 //**************************************************************************************
 
   /**
+   * While the heat pump is off (coil 'enableheatingcooling' = 0) it ignores new setpoints and shows the old value again
+   * at the next poll, so refuse the change with a clear message instead. The state is refreshed on every poll;
+   * before the first poll it is assumed to be on. Applies to circuit 1 and 2 (they share the on/off state), not to DHW.
+   */
+  private assertHeatingCoolingOn() {
+    if (this.enableHeatingCooling === 0) throw new Error('Heatpump is off, unable to set temperature');
+  }
+
+  /**
    * Thermostat setpoint. In 'auto' mode the pump works with a shift value instead of an absolute target:
    * the shift (-5 to +5) moves the weather curve up or down. A change of the thermostat is therefore converted to a
    * rounded delta (1 step from the app, more from a flow card) that is added to the current shift value and limited to -5..+5.
    */
   async setTargetTemperature(value: number) {
+    this.assertHeatingCoolingOn();
     if (this.getCapabilityValue('thermostat_mode') === 'auto') {
       if (this.shiftValue === undefined) throw new Error('Shift value not known yet, try again after the next poll');
       const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature')));   // 1 step from the app, more from a flow card
@@ -401,6 +411,7 @@ class MyThermaVDevice extends ThermaV {
   async setTargetTemperature2(value: number) {
     // The circuit 2 capability only exists while temptarget2 is not 0
     if (!this.hasCapability('target_temperature.circuit2')) throw new Error('Circuit 2 is not in use');
+    this.assertHeatingCoolingOn();
     if (this.getCapabilityValue('thermostat_mode') === 'auto') {
       if (this.shiftValue2 === undefined) throw new Error('Shift value circuit 2 not known yet, try again after the next poll');
       const delta = Math.round(value - Number(this.getCapabilityValue('target_temperature.circuit2')));
