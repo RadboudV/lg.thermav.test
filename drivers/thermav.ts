@@ -103,41 +103,12 @@ protected debug(...args: any[]): void {
 			Math.pow(10, Number(measurement.scale));
 		}
 
-	private async updateNumericCapability(
-		result: Record<string, Measurement>,
-		source: string,
-		capability: string
-	) {
-		const item = result[source];
-
-		if (!item) {
-			return;
-		}
-
-		if (!this.hasCapability(capability)) {
-			await this.addCapability(capability);
-		}
-
-		const value =
-			Number(item.value) * Math.pow(10, Number(item.scale));
-
-		await this.setCapabilityValue(capability, value);
-	}
-// Example: await this.updateNumericCapability( result, 'tempwaterinlet', 'measure_temperature.tempwaterinlet' );
-
 	/** Add the capability (with options) if the device does not have it yet. Returns true when added. */
 	protected async ensureCapability(capability: string, options?: Record<string, unknown>): Promise<boolean> {
 		if (this.hasCapability(capability)) return false;
 		await this.addCapability(capability);
 		if (options) await this.setCapabilityOptions(capability, options);
 		return true;
-	}
-
-	/** Set a capability only when the value changed. */
-	protected async updateCapability(capability: string, value: number | string | boolean | null) {
-		if (this.getCapabilityValue(capability) !== value) {
-			await this.setCapabilityValue(capability, value);
-		}
 	}
 
 	/**

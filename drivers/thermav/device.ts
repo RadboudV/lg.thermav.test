@@ -76,6 +76,8 @@ class MyThermaVDevice extends ThermaV {
   private failures = 0;
   private copAverage = new CopAverage(COP_AVERAGE_POLLS, MAX_METER_GAP_S * 1000);
   private meterFailing = false;      // energy meter unreachable at the previous poll (log once per outage)
+  private connectionPollTimer?: NodeJS.Timeout;        // one-off poll after a change of the connection settings
+  private desinfectionResetTimer?: NodeJS.Timeout;      // switches the desinfection checkbox back off
   private lastMeterTime = 0;       // timestamp (ms) of the previous meter update (0 = none yet)
   private lastWrite = 0;           // timestamp (ms) of the last successful write to the heat pump
   private productDetected = false;   // product registers are read once (until that succeeds), not on every poll
@@ -204,6 +206,14 @@ class MyThermaVDevice extends ThermaV {
     this.pollTimer = undefined;
   }
 
+  /** Clears the one-off timers started from onSettings (used when the device is deleted or uninitialized). */
+  private clearOneOffTimers() {
+    if (this.connectionPollTimer) this.homey.clearTimeout(this.connectionPollTimer);
+    if (this.desinfectionResetTimer) this.homey.clearTimeout(this.desinfectionResetTimer);
+    this.connectionPollTimer = undefined;
+    this.desinfectionResetTimer = undefined;
+  }
+
   /** One-off rename of capability ids on devices that were added with the old ids (see RENAMED_CAPABILITIES). */
   private async migrateCapabilities() {
     for (const [oldId, newId, options] of RENAMED_CAPABILITIES) {
@@ -290,6 +300,12 @@ class MyThermaVDevice extends ThermaV {
   
     this.debug("ThermaV settings where changed");
 
+// Desinfection is part of DHW: refuse it (before anything is written, so nothing below has been applied yet) when DHW is not enabled
+    const wantsDesinfection = changedKeys.includes('settings_trigger_desinfection') && Boolean(newSettings.settings_trigger_desinfection);
+    if (wantsDesinfection && !newSettings.settings_enable_dhw) {
+      throw new Error('Trigger Desinfection only works when "Enable DHW" is on.');
+    }
+
 // Silent mode toggled by the user in the settings page (a setSettings() call from code does not end up here)
     if (changedKeys.includes('settings_enable_silent_mode')) {
       await this.writeHeatpump('setsilentmode', newSettings.settings_enable_silent_mode ? 1 : 0);
@@ -306,13 +322,8 @@ class MyThermaVDevice extends ThermaV {
 	  this.isAwhp = null;
 	  this.productInfo = null;
 	  // onSettings runs before the new values are stored, so poll a moment later
-	  this.homey.setTimeout(() => this.pollHeatpump(), 1000);
-    }
-
-// Desinfection is part of DHW: refuse it (before anything is written) when DHW is not enabled
-    const wantsDesinfection = changedKeys.includes('settings_trigger_desinfection') && Boolean(newSettings.settings_trigger_desinfection);
-    if (wantsDesinfection && !newSettings.settings_enable_dhw) {
-      throw new Error('Trigger Desinfection only works when "Enable DHW" is on.');
+	  if (this.connectionPollTimer) this.homey.clearTimeout(this.connectionPollTimer);
+	  this.connectionPollTimer = this.homey.setTimeout(() => this.pollHeatpump(), 1000);
     }
 
 // Enable DHW toggled by the user: write the coil. The DHW capabilities follow on the next poll.
@@ -324,7 +335,8 @@ class MyThermaVDevice extends ThermaV {
 //Trigger Desinfection (only a trigger: the checkbox is switched back off right after the write)
     if (wantsDesinfection) {
       await this.writeHeatpump('settriggerdesinfection', 1);
-      this.homey.setTimeout(() => this.setSettings({ settings_trigger_desinfection: false }).catch(this.error), 1000);
+      if (this.desinfectionResetTimer) this.homey.clearTimeout(this.desinfectionResetTimer);
+      this.desinfectionResetTimer = this.homey.setTimeout(() => this.setSettings({ settings_trigger_desinfection: false }).catch(this.error), 1000);
     }
 
 //Polling Interval has changed, clear current timer and set and start new timer
@@ -349,6 +361,7 @@ class MyThermaVDevice extends ThermaV {
   async onDeleted() {
     this.debug('ThermaV device has been deleted');
     this.stopPolling();
+    this.clearOneOffTimers();
     this.stopDefrostCounter();
 	this.dropConnection();
   }
@@ -361,6 +374,7 @@ class MyThermaVDevice extends ThermaV {
   async onUninit() {
     this.debug('ThermaV device has been Un initialized.');
     this.stopPolling();
+    this.clearOneOffTimers();
     this.stopDefrostCounter();
 	this.dropConnection();
   }
@@ -587,9 +601,9 @@ class MyThermaVDevice extends ThermaV {
       const flowRate = val(finalRes.waterflowrate);
       // same 1/3 K sensor steps as the capabilities: the heat output (and COP) depends on the small outlet - inlet difference
       //const tempOut = snapToThirds(val(finalRes.tempwateroutlet));
-	  const tempOut = Math.round(val(finalRes.tempwateroutlet) * 3) / 3;
+	  const tempOut = snapToThirds(val(finalRes.tempwateroutlet));
       // const tempIn = snapToThirds(val(finalRes.tempwaterinlet));
-	  const tempIn = Math.round(val(finalRes.tempwaterinlet) * 3) / 3;
+	  const tempIn = snapToThirds(val(finalRes.tempwaterinlet));
 	  const compressorOn = val(finalRes.statuscompressor) === 1;
 
 //      if (val(finalRes.waterflowrate) > 5 && val(finalRes.statuscompressor) == 1
