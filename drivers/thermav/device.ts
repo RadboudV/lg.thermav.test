@@ -121,14 +121,16 @@ class MyThermaVDevice extends ThermaV {
       const socket = new net.Socket();
       const client = new Modbus.client.TCP(socket, Number(this.getSetting('id')), 5000);
  
-      const onFail = (err: Error) => { this.dropConnection(); reject(err); };
+      // A failed attempt must also destroy its own (not yet stored) socket, otherwise it stays half open
+      const onFail = (err: Error) => { socket.removeAllListeners('close'); socket.destroy(); this.dropConnection(); reject(err); };
  
       socket.setKeepAlive(true, 10_000);   // detect half-dead links
       socket.setNoDelay(true);
       socket.once('error', onFail);
       socket.setTimeout(CONNECT_TIMEOUT_MS);
       socket.once('timeout', () => onFail(new Error('connect timeout')));
-      socket.on('close', () => { this.socket = null; this.client = null; });
+      // only forget the connection when it is this socket that closed (a late 'close' of an old socket must not drop a newer one)
+      socket.on('close', () => { if (this.socket === socket) { this.socket = null; this.client = null; } });
       socket.on('error', (err) => this.error('socket error', err.message)); // never leave unhandled
  
       socket.connect({ host: this.getSetting('address'), port: Number(this.getSetting('port')) }, () => {
@@ -449,10 +451,14 @@ class MyThermaVDevice extends ThermaV {
     this.debug('Set thermostat mode:', mode);
     if (mode === 'off') {
       await this.writeHeatpump('setonoff', 0);
+      this.enableHeatingCooling = 0;   // do not wait for the next poll (see assertHeatingCoolingOn)
       return;
     }
     if (!(mode in MODE_REGISTER)) throw new Error(`Unknown thermostat mode: ${mode}`);
-    if (this.getCapabilityValue('thermostat_mode') === 'off') await this.writeHeatpump('setonoff', 1);
+    if (this.getCapabilityValue('thermostat_mode') === 'off') {
+      await this.writeHeatpump('setonoff', 1);
+      this.enableHeatingCooling = 1;   // a setpoint can be written right away, without waiting for the next poll
+    }
     await this.writeHeatpump('setthermostatmode', MODE_REGISTER[mode]);
   }
 
@@ -566,7 +572,7 @@ class MyThermaVDevice extends ThermaV {
       }
       // Right after a write the heat pump may still report the old value -> skip processing to avoid "jumping" values
       if (Date.now() - this.lastWrite >= WRITE_SETTLE_MS) {
-        await this.processResult(finalRes);
+        await this.processResult(finalRes).catch((err: Error) => this.error('processResult failed:', err.message));
       } else {
         this.debug('pollHeatpump: skipping processResult, write settling');
       }
@@ -617,7 +623,9 @@ class MyThermaVDevice extends ThermaV {
 	  const totalproducedcold = (Number(this.getCapabilityValue('meter_power.totalgeneratedcold')) || 0) + ((producedcold * elapsedSeconds) / 3600) / 1000;
 	  await this.setCapabilityValue('meter_power.totalgeneratedcold', totalproducedcold).catch(this.error);
 
-	  await this.processEnergyMeter(compressorOn, producedheat + producedcold);
+	  // The energy meter is optional: whatever goes wrong there must not fail the heat pump poll
+	  await this.processEnergyMeter(compressorOn, producedheat + producedcold)
+	    .catch((err: Error) => this.error('Energy meter processing failed:', err.message));
 
 	  
     } catch (err) {

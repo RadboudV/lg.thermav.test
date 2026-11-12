@@ -8,6 +8,10 @@ const OPERATING_MODES: Record<string, string> = { '0': 'cool', '1': 'cool', '2':
 
 const NO_ERROR_TEXT = 'No error';
 
+// Thermostat range of circuit 1 per control method (holding register 1): room air control or water temperature control
+const TARGET_RANGE_AIR = { min: 16, max: 30 };
+const TARGET_RANGE_WATER = { min: 5, max: 65 };
+
 const title = (en: string, nl: string = en) => ({ en, nl });
 
 // Circuit 2 (second heating/cooling circuit). There is no "installed" register; per the user's finding circuit 2 is in use
@@ -83,6 +87,7 @@ export class ThermaV extends Homey.Device {
 	private defrostActive: boolean | null = null;         // defrost status at the previous poll (null = unknown, e.g. first poll)
 	private defrostResetTimer?: NodeJS.Timeout;           // fires at local midnight
 	protected shiftValue: number | undefined;         // holding register 4 (raw, unsigned 16 bit)
+	private appliedTargetRange: string | undefined;   // range currently set on target_temperature ('min-max'), see applyTargetTemperatureRange
 
 protected debug(...args: any[]): void {
     if (this.getSetting('debug_logging')) {
@@ -441,60 +446,67 @@ protected debug(...args: any[]): void {
 		}
 	}
 
-    async processResult(result: Record<string, Measurement>) {
-		if (!result) return;
+	/**
+	 * Runs one processing step. A step that fails (for example a capability that rejects a value) is logged and must not
+	 * stop the other steps (error code, DHW, triggers ...) or make the whole poll count as a lost connection.
+	 */
+	private async runStep(name: string, step: () => Promise<void> | void) {
+		try {
+			await step();
+		} catch (err) {
+			this.error('processResult step failed:', name, (err as Error)?.message ?? err);
+		}
+	}
 
-		// State needed by the thermostat logic (kept per device)
-		if (this.isValid(result.enableheatingcooling)) this.enableHeatingCooling = Number(result.enableheatingcooling.value);
-		if (this.isValid(result.shiftvalue1)) this.shiftValue = Number(result.shiftvalue1.value);
-		if (this.isValid(result.shiftvalue2)) this.shiftValue2 = Number(result.shiftvalue2.value);
+	/**
+	 * The thermostat range depends on the control method (holding register 1): with room air control (2) the setpoint is
+	 * 16-30 degrees, with water outlet / inlet control (0, 1) it goes up to 65 degrees. The capability options are only
+	 * written when the range changes (and once after every start).
+	 */
+	private async applyTargetTemperatureRange(result: Record<string, Measurement>) {
+		if (!this.isValid(result.controlmethod)) return;
+		const roomAirControl = Number(result.controlmethod.value) === 2;
+		const range = roomAirControl ? TARGET_RANGE_AIR : TARGET_RANGE_WATER;
+		const key = `${range.min}-${range.max}`;
+		if (this.appliedTargetRange === key) return;
+		await this.setCapabilityOptions('target_temperature', { decimals: 0, step: 1, ...range });
+		this.appliedTargetRange = key;
+		this.debug('Thermostat range set to', key, roomAirControl ? '(room air control)' : '(water control)');
+	}
 
-// Show result
-// disabled logging 
-//            for (let k in result) {
-//
-//                debug.log(k, result[k].value, result[k].scale, result[k].label)
-//            }
+	private async processTargetTemperature(result: Record<string, Measurement>) {
+		if (!result['temptarget1']) return;
+		if (!this.hasCapability('target_temperature')) {
+			await this.addCapability('target_temperature');
+		}
+		await this.applyTargetTemperatureRange(result);
 
-            if (result['temptarget1']) {
-				if (!this.hasCapability('target_temperature')) {
-					await this.addCapability('target_temperature');
-				}
-                //var temptarget1 = Number(result['temptarget1'].value) * (Math.pow(10, Number(result['temptarget1'].scale)));
-				const temptarget1 = this.getScaledValue(result['temptarget1']);
-				const current = this.getCapabilityValue('target_temperature');
-				if (current !== temptarget1) {
-					await this.setCapabilityValue('target_temperature', Math.round(temptarget1));
-				}
-            }
+		// Stay inside the range the capability accepts: a value outside it would be rejected by Homey
+		const range = this.appliedTargetRange === `${TARGET_RANGE_AIR.min}-${TARGET_RANGE_AIR.max}` ? TARGET_RANGE_AIR : TARGET_RANGE_WATER;
+		const temptarget1 = Math.min(range.max, Math.max(range.min, Math.round(this.getScaledValue(result['temptarget1']))));
+		if (this.getCapabilityValue('target_temperature') !== temptarget1) {
+			await this.setCapabilityValue('target_temperature', temptarget1);
+		}
+	}
 
-			// Plain sensors (register -> capability), see lib/sensors.ts
-			await this.processSensors(result);
+	private async processWaterPressure(result: Record<string, Measurement>) {
+		if (!result['waterpressure']) return;
+		if (Number(result['waterpressure'].value) !== 0) {
+			if (!this.hasCapability('measure_pressure.waterpressure')) {
+				await this.addCapability('measure_pressure.waterpressure');
+			}
+			const waterpressure = this.getScaledValue(result['waterpressure']);
+			if (this.getCapabilityValue('measure_pressure.waterpressure') !== waterpressure) {
+				await this.setCapabilityValue('measure_pressure.waterpressure', waterpressure);
+			}
+		} else if (this.hasCapability('measure_pressure.waterpressure')
+			&& this.getCapabilityValue('measure_pressure.waterpressure') !== null) {
+			// 0 = no sensor / no reading
+			await this.setCapabilityValue('measure_pressure.waterpressure', null);
+		}
+	}
 
-// if (this.hasCapability('measure_pressure.pressurelow')) {
-//					this.removeCapability('measure_pressure.pressurelow');
-//				}
-
-// Water Pressure
-           if (result['waterpressure'] && Number(result['waterpressure'].value) != 0) {
-				if (!this.hasCapability('measure_pressure.waterpressure')) {
-					await this.addCapability('measure_pressure.waterpressure');
-				}
-                //var waterpressure = Number(result['waterpressure'].value) * (Math.pow(10, Number(result['waterpressure'].scale)));
-				const waterpressure = this.getScaledValue(result['waterpressure']);
-				const current = this.getCapabilityValue('measure_pressure.waterpressure');
-				if (current !== waterpressure) {
-					await this.setCapabilityValue('measure_pressure.waterpressure', waterpressure);
-				}
-            }
-
-           if (result['waterpressure'] && (Number(result['waterpressure'].value) == 0)) {
-				if (this.hasCapability('measure_pressure.waterpressure')) {
-					// await this.removeCapability('measure_pressure.waterpressure');
-					await this.setCapabilityValue('measure_pressure.waterpressure', null);
-				}
-            }
-
+	private async processOperationalState(result: Record<string, Measurement>) {
 // Operational State (Standby, Cooling, Heating)
             if (result['oduoperationcycle']) {
 				if (!this.hasCapability('operational_state')) {
@@ -537,7 +549,9 @@ protected debug(...args: any[]): void {
 					await this.setCapabilityValue('operational_state', oduoperationcycle);
 				}
             }
+	}
 
+	private async processThermostatMode(result: Record<string, Measurement>) {
 		// Thermostat mode
 		if (this.isValid(result.operatingmode)) {
 			//await this.ensureCapability('thermostat_mode');
@@ -556,7 +570,9 @@ protected debug(...args: any[]): void {
 				}
 
 		}
+	}
 
+	private async processDefrostStatus(result: Record<string, Measurement>) {
 // Defrost Status
             if (result['statusdefrost']) {
 				if (!this.hasCapability('alarm_cold')) {
@@ -571,27 +587,11 @@ protected debug(...args: any[]): void {
 					await this.setCapabilityValue('alarm_cold', Number(result.statusdefrost.value) === 1);
 				}
             }
+		// Defrosts today: count every start of a defrost cycle, reset at local midnight
+		if (this.isValid(result.statusdefrost)) await this.countDefrost(Number(result.statusdefrost.value) === 1);
+	}
 
-// Defrosts today: count every start of a defrost cycle, reset at local midnight
-			if (this.isValid(result.statusdefrost)) await this.countDefrost(Number(result.statusdefrost.value) === 1);
-
-// Error Code
-/*
-            if (result['errorcode']) {
-				if (!this.hasCapability('alarm_generic')) {
-					await this.addCapability('alarm_generic');
-				}
-                var errorcode = false;
-				if ((Number(result['errorcode'].value)) != 0) {
-					errorcode = true
-					}
-                await this.setCapabilityValue('alarm_generic', errorcode);
-            }
-*/
-
-	// Error code: alarm_generic stays the on/off flag, the device timeline shows code + title
-		if (this.isValid(result.errorcode)) await this.processErrorCode(Number(result.errorcode.value));
-
+	private async processSilentModeStatus(result: Record<string, Measurement>) {
 // Silent Mode Status
             if (result['statussilentmode']) {
 //			var statussilentmode = Number(result['statussilentmode'].value);
@@ -604,7 +604,9 @@ protected debug(...args: any[]): void {
 			});
 			}
             }
+	}
 
+	private async processCoolingModeStatus(result: Record<string, Measurement>) {
 //Cooling Mode
             if (result['statuscooling']) {
 //			var statuscooling = Number(result['statuscooling'].value);
@@ -619,15 +621,30 @@ protected debug(...args: any[]): void {
 			});
 			}
             }
+	}
 
-// Domestic hot water (capabilities only while DHW is enabled)
-			await this.processDhw(result);
+	async processResult(result: Record<string, Measurement>) {
+		if (!result) return;
 
-// Circuit 2 (capabilities only while temptarget2 is not 0)
-			await this.processCircuit2(result);
+		// State needed by the thermostat logic (kept per device)
+		if (this.isValid(result.enableheatingcooling)) this.enableHeatingCooling = Number(result.enableheatingcooling.value);
+		if (this.isValid(result.shiftvalue1)) this.shiftValue = Number(result.shiftvalue1.value);
+		if (this.isValid(result.shiftvalue2)) this.shiftValue2 = Number(result.shiftvalue2.value);
 
-// Flow trigger cards for everything that changed since the previous poll
-			this.fireTriggers(result);
+		// Error code first, so nothing else that goes wrong in this poll can hide an error of the heat pump.
+		// alarm_generic stays the on/off flag; the code with its description goes to thermav_error, a notification and the fault triggers.
+		if (this.isValid(result.errorcode)) await this.runStep('errorcode', () => this.processErrorCode(Number(result.errorcode.value)));
 
-    }
+		await this.runStep('target temperature', () => this.processTargetTemperature(result));
+		await this.runStep('sensors', () => this.processSensors(result));       // plain sensors, see lib/sensors.ts
+		await this.runStep('water pressure', () => this.processWaterPressure(result));
+		await this.runStep('operational state', () => this.processOperationalState(result));
+		await this.runStep('thermostat mode', () => this.processThermostatMode(result));
+		await this.runStep('defrost', () => this.processDefrostStatus(result));
+		await this.runStep('silent mode', () => this.processSilentModeStatus(result));
+		await this.runStep('cooling mode', () => this.processCoolingModeStatus(result));
+		await this.runStep('DHW', () => this.processDhw(result));               // capabilities only while DHW is enabled
+		await this.runStep('circuit 2', () => this.processCircuit2(result));    // capabilities only while temptarget2 is not 0
+		await this.runStep('triggers', () => this.fireTriggers(result));        // everything that changed since the previous poll
+	}
 }
