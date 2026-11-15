@@ -1734,6 +1734,19 @@
               "value": false
             },
             {
+              "id": "settings_auto_silent_mode",
+              "type": "checkbox",
+              "label": {
+                "en": "Automatic Silent Mode",
+                "nl": "Automatische stille modus"
+              },
+              "hint": {
+                "en": "Switches Silent Mode on and off automatically. Silent Mode is switched off while the heat pump is defrosting, and when the suction temperature or the heat exchanger temperature has been below 1 °C for 300 seconds. It is switched on again when both temperatures have been at or above 1 °C for 300 seconds, or when the heat pump is switched to heating while the outdoor temperature is above 7 °C. Every change made by this option is reported as a notification on the timeline. While this option is on, a manual change of Silent Mode can be overridden by it.",
+                "nl": "Schakelt de stille modus automatisch in en uit. De stille modus gaat uit tijdens het ontdooien en als de aanzuigtemperatuur of de temperatuur van de warmtewisselaar 300 seconden lang lager is dan 1 °C. Hij gaat weer aan als beide temperaturen 300 seconden lang 1 °C of hoger zijn, of als de warmtepomp naar verwarmen wordt geschakeld terwijl de buitentemperatuur hoger is dan 7 °C. Elke wijziging door deze optie wordt als notificatie op de tijdlijn gemeld. Zolang deze optie aan staat, kan een handmatige wijziging van de stille modus door deze optie worden overschreven."
+              },
+              "value": false
+            },
+            {
               "id": "settings_enable_dhw",
               "type": "checkbox",
               "label": {
