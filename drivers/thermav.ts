@@ -21,7 +21,7 @@ const CIRCUIT2_TARGET = 'target_temperature.circuit2';
 const CIRCUIT2_ROOM   = 'measure_temperature.circuit2';
 const CIRCUIT2_CAPABILITIES: Record<string, Record<string, unknown>> = {
 	// min/max: the default range of target_temperature (4-35) is too small for a water temperature setpoint
-	[CIRCUIT2_TARGET]: { title: title('Target Temperature Circuit 2', 'Doeltemperatuur circuit 2'), decimals: 0, step: 1, min: 5, max: 65 },
+	[CIRCUIT2_TARGET]: { title: title('Target Temperature Circuit 2', 'Doeltemperatuur circuit 2'), decimals: 0, step: 1, min: 16, max: 30 },
 	[CIRCUIT2_ROOM]:   { title: title('Room Temperature Circuit 2', 'Kamertemperatuur circuit 2'), decimals: 1 },
 };
 

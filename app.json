@@ -1602,8 +1602,8 @@
         "target_temperature": {
           "decimals": 0,
           "step": 1,
-          "min": 5,
-          "max": 65
+          "min": 16,
+          "max": 30
         },
         "measure_frequency.freqinverter": {
           "decimals": 0,
