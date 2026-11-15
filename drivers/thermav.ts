@@ -1,4 +1,5 @@
 import Homey from 'homey';
+import { AutoSilent, type AutoSilentDecision } from '../lib/autosilent';
 import { errorTitle } from '../lib/errorcodes';
 import type { Measurement } from '../lib/modbus';
 import { SENSORS } from '../lib/sensors';
@@ -87,6 +88,8 @@ export class ThermaV extends Homey.Device {
 	private defrostActive: boolean | null = null;         // defrost status at the previous poll (null = unknown, e.g. first poll)
 	private defrostResetTimer?: NodeJS.Timeout;           // fires at local midnight
 	protected shiftValue: number | undefined;         // holding register 4 (raw, unsigned 16 bit)
+	private autoSilent = new AutoSilent();               // decides automatic silent mode (setting 'settings_auto_silent_mode')
+	protected autoSilentRequest: AutoSilentDecision | undefined;   // wanted silent mode; written after the poll (a write cannot run inside the poll)
 	private appliedTargetRange: string | undefined;   // range currently set on target_temperature ('min-max'), see applyTargetTemperatureRange
 
 protected debug(...args: any[]): void {
@@ -153,7 +156,7 @@ protected debug(...args: any[]): void {
 	 * One Homey notification; failing to create it must never block the error handling.
 	 * Notifications need no permission in app.json (an entry such as homey:manager:notifications is invalid and breaks the build).
 	 */
-	private async notify(excerpt: string) {
+	protected async notify(excerpt: string) {
 		try {
 			await this.homey.notifications.createNotification({ excerpt });
 		} catch (err) {
@@ -577,6 +580,33 @@ protected debug(...args: any[]): void {
             }
 	}
 
+	/**
+	 * Automatic silent mode (setting 'settings_auto_silent_mode', rules in lib/autosilent.ts). This runs inside the poll, which
+	 * holds the Modbus lock, so it only stores the wanted state; the device writes it right after the poll.
+	 */
+	private async processAutoSilentMode(result: Record<string, Measurement>) {
+		if (this.getSetting('settings_auto_silent_mode') !== true) {
+			this.autoSilent.reset();
+			this.autoSilentRequest = undefined;
+			return;
+		}
+		if (!this.isValid(result.statussilentmode)) return;        // current state unknown: do not decide
+		const silentActive = Number(result.statussilentmode.value) === 1;
+
+		const valueOf = (measurement?: Measurement) => this.isValid(measurement) ? this.getScaledValue(measurement) : undefined;
+		// 'Switched to heating' = the operation cycle of the outdoor unit (0 standby, 1 cooling, 2 heating) becomes heating
+		const heating = this.isValid(result.oduoperationcycle) ? Number(result.oduoperationcycle.value) === 2 : undefined;
+
+		const decision = this.autoSilent.evaluate({
+			defrosting: this.isValid(result.statusdefrost) && Number(result.statusdefrost.value) === 1,
+			suctionTemperature: valueOf(result.tempsuction),
+			heatExchangerTemperature: valueOf(result.temphex),
+			outdoorTemperature: valueOf(result.tempoutdoor),
+			heating,
+		});
+		this.autoSilentRequest = decision && decision.enable !== silentActive ? decision : undefined;
+	}
+
 	private async processCoolingModeStatus(result: Record<string, Measurement>) {
 //Cooling Mode
             if (result['statuscooling']) {
@@ -613,6 +643,7 @@ protected debug(...args: any[]): void {
 		await this.runStep('thermostat mode', () => this.processThermostatMode(result));
 		await this.runStep('defrost', () => this.processDefrostStatus(result));
 		await this.runStep('silent mode', () => this.processSilentModeStatus(result));
+		await this.runStep('automatic silent mode', () => this.processAutoSilentMode(result));
 		await this.runStep('cooling mode', () => this.processCoolingModeStatus(result));
 		await this.runStep('DHW', () => this.processDhw(result));               // capabilities only while DHW is enabled
 		await this.runStep('circuit 2', () => this.processCircuit2(result));    // capabilities only while temptarget2 is not 0

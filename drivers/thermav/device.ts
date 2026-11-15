@@ -652,6 +652,21 @@ class MyThermaVDevice extends ThermaV {
     } finally {
       this.busy = false;
     }
+
+    await this.applyAutoSilentRequest();   // the Modbus lock is free again
+  }
+
+  /** Writes the silent mode wanted by the automatic silent mode (see processAutoSilentMode) and reports it on the timeline. */
+  private async applyAutoSilentRequest() {
+    const request = this.autoSilentRequest;
+    if (!request) return;
+    this.autoSilentRequest = undefined;
+    try {
+      await this.setSilentMode(request.enable);
+      await this.notify(`${this.getName()}: Silent mode switched ${request.enable ? 'on' : 'off'} (automatic silent mode): ${request.reason}`);
+    } catch (err) {
+      this.error('Automatic silent mode could not be applied:', (err as Error).message);
+    }
   }
 
 //*****************************************************************************************************
