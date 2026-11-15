@@ -5,7 +5,8 @@
  *  OFF  - when the suction temperature has been below 1 degree for 300 seconds, or the heat exchanger temperature has
  *         been below 1 degree for 300 seconds
  *  ON   - the inverse of the previous rule: both temperatures have been at or above 1 degree for 300 seconds
- *  ON   - when the heat pump is switched to heating while the outdoor temperature is above 7 degrees
+ *  ON   - when the heat pump switches to heating (operation cycle goes from standby or cooling to heating) while the
+ *         outdoor temperature is above 7 degrees
  *
  * The class only decides; the caller compares the decision with the current state and writes it to the heat pump.
  */
@@ -19,7 +20,7 @@ export interface AutoSilentInput {
   suctionTemperature?: number;                 // undefined = register could not be read
   heatExchangerTemperature?: number;
   outdoorTemperature?: number;
-  heating: boolean;                            // heat pump is on and in heating mode
+  heating?: boolean;                           // operation cycle (oduoperationcycle) is heating; undefined = register could not be read
 }
 
 export interface AutoSilentDecision {
@@ -43,8 +44,8 @@ export class AutoSilent {
 
   /** Evaluate one poll. Returns the wanted state, or null when none of the rules applies (keep the current state). */
   evaluate(input: AutoSilentInput, now = Date.now()): AutoSilentDecision | null {
-    const switchedToHeating = this.previousHeating === false && input.heating;
-    this.previousHeating = input.heating;
+    const switchedToHeating = this.previousHeating === false && input.heating === true;
+    if (input.heating !== undefined) this.previousHeating = input.heating;   // an unreadable register keeps the previous state
 
     if (input.defrosting) {
       this.suctionLowSince = undefined;

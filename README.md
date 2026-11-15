@@ -24,7 +24,7 @@ Homey app for LG Therma V R32 heat pumps, connected through a Modbus RTU-to-TCP 
 ## Flow cards
 - **Triggers** for status changes (compressor, defrost, pumps, heaters, silent mode, circuit 2, DHW, solar pump, ...), operation
   cycle, energy state and faults (with the error code and description as tokens).
-- **Automatic silent mode** (device setting): silent mode off while defrosting and when the suction or heat exchanger temperature has been below 1 °C for 300 s; on again when both are at or above 1 °C for 300 s, or when the heat pump is switched to heating and the outdoor temperature is above 7 °C. Every automatic change creates a notification.
+- **Automatic silent mode** (device setting): silent mode off while defrosting and when the suction or heat exchanger temperature has been below 1 °C for 300 s; on again when both are at or above 1 °C for 300 s, or when the heat pump starts heating (operation cycle changes to heating) and the outdoor temperature is above 7 °C. Every automatic change creates a notification.
 - **Conditions** for the same states, for the silent mode and for the error code.
 - **Actions** to switch the heat pump off / on (auto, heat, cool), set silent mode, set the temperature, the DHW temperature, the
   circuit 2 temperature and the energy state.

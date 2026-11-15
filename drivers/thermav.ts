@@ -594,9 +594,8 @@ protected debug(...args: any[]): void {
 		const silentActive = Number(result.statussilentmode.value) === 1;
 
 		const valueOf = (measurement?: Measurement) => this.isValid(measurement) ? this.getScaledValue(measurement) : undefined;
-		const mode = OPERATING_MODES[this.isValid(result.operatingmode) ? result.operatingmode.value : ''];
-		const cooling = this.isValid(result.statuscooling) && Number(result.statuscooling.value) === 1;
-		const heating = this.enableHeatingCooling !== 0 && (mode === 'heat' || (mode === 'auto' && !cooling));
+		// 'Switched to heating' = the operation cycle of the outdoor unit (0 standby, 1 cooling, 2 heating) becomes heating
+		const heating = this.isValid(result.oduoperationcycle) ? Number(result.oduoperationcycle.value) === 2 : undefined;
 
 		const decision = this.autoSilent.evaluate({
 			defrosting: this.isValid(result.statusdefrost) && Number(result.statusdefrost.value) === 1,
