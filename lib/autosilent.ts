@@ -8,6 +8,10 @@
  *  ON   - when the heat pump switches to heating (operation cycle goes from standby or cooling to heating) while the
  *         outdoor temperature is above 7 degrees
  *
+ * Only while the heat pump is running (switched on and the compressor cycle is not standby): with the heat pump off or
+ * in standby the temperatures are just ambient temperatures and say nothing about icing, so nothing is decided and the
+ * timers are reset.
+ *
  * The class only decides; the caller compares the decision with the current state and writes it to the heat pump.
  */
 
@@ -20,6 +24,7 @@ export interface AutoSilentInput {
   suctionTemperature?: number;                 // undefined = register could not be read
   heatExchangerTemperature?: number;
   outdoorTemperature?: number;
+  running: boolean;                            // heat pump switched on and not in standby
   heating?: boolean;                           // operation cycle (oduoperationcycle) is heating; undefined = register could not be read
 }
 
@@ -52,6 +57,14 @@ export class AutoSilent {
       this.heatExchangerLowSince = undefined;
       this.bothOkSince = undefined;
       return { enable: false, reason: 'the heat pump is defrosting' };
+    }
+
+    if (!input.running) {
+      // switched off or standby: the temperatures are ambient, restart all timers when it runs again
+      this.suctionLowSince = undefined;
+      this.heatExchangerLowSince = undefined;
+      this.bothOkSince = undefined;
+      return null;
     }
 
     const suctionLow = input.suctionTemperature !== undefined && input.suctionTemperature < LOW_TEMPERATURE_LIMIT;

@@ -597,11 +597,17 @@ protected debug(...args: any[]): void {
 		// 'Switched to heating' = the operation cycle of the outdoor unit (0 standby, 1 cooling, 2 heating) becomes heating
 		const heating = this.isValid(result.oduoperationcycle) ? Number(result.oduoperationcycle.value) === 2 : undefined;
 
+		// Running = switched on (enableheatingcooling) and the operation cycle of the outdoor unit is not standby (0).
+		// An unreadable cycle does not count as standby.
+		const cycleStandby = this.isValid(result.oduoperationcycle) && Number(result.oduoperationcycle.value) === 0;
+		const running = this.enableHeatingCooling !== 0 && !cycleStandby;
+
 		const decision = this.autoSilent.evaluate({
 			defrosting: this.isValid(result.statusdefrost) && Number(result.statusdefrost.value) === 1,
 			suctionTemperature: valueOf(result.tempsuction),
 			heatExchangerTemperature: valueOf(result.temphex),
 			outdoorTemperature: valueOf(result.tempoutdoor),
+			running,
 			heating,
 		});
 		this.autoSilentRequest = decision && decision.enable !== silentActive ? decision : undefined;
